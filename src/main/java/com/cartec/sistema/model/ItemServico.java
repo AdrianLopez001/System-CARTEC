@@ -1,5 +1,6 @@
 package com.cartec.sistema.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -18,6 +19,7 @@ public class ItemServico {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ordem_servico_id", nullable = false)
+    @JsonIgnore
     private OrdemServico ordemServico;
 
     @Column(name = "codigo")

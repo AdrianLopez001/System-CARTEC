@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Cartec — Tarefas</title>
+    <style th:replace="~{fragments/estilos :: base}"></style>
+</head>
+<body>
+<header>
+    <div>
+        <h1>Tarefas</h1>
+        <p th:text="${tarefas.size()} + ' no total'">0 no total</p>
+    </div>
+    <nav th:replace="~{fragments/nav :: menu}"></nav>
+</header>
+<main>
+    <section class="card">
+        <h2>Nova tarefa</h2>
+        <form id="formTarefa">
+            <label for="titulo">Título</label>
+            <input type="text" id="titulo" required placeholder="Ex: Ligar pra confirmar orçamento">
+            <label for="clienteId">Cliente</label>
+            <select id="clienteId">
+                <option value="">— nenhum —</option>
+                <option th:each="c : ${clientes}" th:value="${c.id}" th:text="${c.nome}"></option>
+            </select>
+            <label for="dataVencimento">Vencimento</label>
+            <input type="date" id="dataVencimento">
+            <label for="descricao">Descrição</label>
+            <textarea id="descricao"></textarea>
+            <button type="submit">Criar</button>
+        </form>
+        <div id="resultado" class="resultado"></div>
+    </section>
+
+    <section class="card">
+        <div th:each="t : ${tarefas}" style="display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid var(--grid);">
+            <input type="checkbox" th:checked="${t.concluida}" th:attr="data-id=${t.id}" onchange="concluir(this)" style="margin-top:4px;">
+            <div style="flex:1;">
+                <div th:text="${t.titulo}" th:style="${t.concluida} ? 'text-decoration:line-through;color:var(--muted)' : ''">Título</div>
+                <div class="descricao" th:if="${t.cliente != null}">
+                    <a th:href="@{'/clientes/' + ${t.cliente.id}}" th:text="${t.cliente.nome}">Cliente</a>
+                </div>
+                <div class="descricao" th:if="${t.dataVencimento != null}" th:text="'Vencimento: ' + ${#temporals.format(t.dataVencimento, 'dd/MM/yyyy')}"></div>
+            </div>
+        </div>
+        <p class="vazio" th:if="${tarefas.isEmpty()}">Nenhuma tarefa cadastrada ainda.</p>
+    </section>
+</main>
+
+<script>
+    document.getElementById('formTarefa').addEventListener('submit', async (evento) => {
+        evento.preventDefault();
+        const clienteId = document.getElementById('clienteId').value;
+        const dataVencimento = document.getElementById('dataVencimento').value;
+        const corpo = {
+            titulo: document.getElementById('titulo').value,
+            descricao: document.getElementById('descricao').value,
+            cliente: clienteId ? { id: Number(clienteId) } : null,
+            dataVencimento: dataVencimento || null
+        };
+        const resposta = await fetch('/api/tarefas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(corpo)
+        });
+        const caixa = document.getElementById('resultado');
+        if (resposta.ok) {
+            caixa.className = 'resultado ok';
+            caixa.textContent = 'Tarefa criada. Recarregando...';
+            setTimeout(() => window.location.reload(), 800);
+        } else {
+            caixa.className = 'resultado erro';
+            caixa.textContent = 'Erro ao salvar (HTTP ' + resposta.status + ')';
+        }
+    });
+
+    async function concluir(checkbox) {
+        const id = checkbox.getAttribute('data-id');
+        await fetch('/api/tarefas/' + id + '/concluir', { method: 'PATCH' });
+        window.location.reload();
+    }
+</script>
+</body>
+</html>

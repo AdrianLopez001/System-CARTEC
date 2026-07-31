@@ -135,7 +135,7 @@
         <h1>Cartec — CRM e Campanhas</h1>
         <p th:text="${totalClientes} + ' cliente(s) cadastrados'">0 clientes cadastrados</p>
     </div>
-    <nav><a href="/">← Voltar pro dashboard</a></nav>
+    <nav th:replace="~{fragments/nav :: menu}"></nav>
 </header>
 <main>
     <section class="card">

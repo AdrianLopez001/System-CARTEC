@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Cartec — Relatórios</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <style th:replace="~{fragments/estilos :: base}"></style>
+</head>
+<body>
+<header>
+    <div>
+        <h1>Relatórios</h1>
+        <p>Escolha a fonte, o campo pra agrupar e a métrica</p>
+    </div>
+    <nav th:replace="~{fragments/nav :: menu}"></nav>
+</header>
+<main>
+    <section class="card">
+        <form id="formRelatorio" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:0 16px; align-items:end;">
+            <div>
+                <label for="fonte">Fonte de dados</label>
+                <select id="fonte">
+                    <option value="NEGOCIACOES">Negociações</option>
+                    <option value="ORDENS_SERVICO">Ordens de Serviço</option>
+                    <option value="CLIENTES">Clientes</option>
+                </select>
+            </div>
+            <div>
+                <label for="agruparPor">Agrupar por</label>
+                <select id="agruparPor"></select>
+            </div>
+            <div>
+                <label for="metrica">Métrica</label>
+                <select id="metrica"></select>
+            </div>
+            <div>
+                <button type="submit">Gerar</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2 id="tituloResultado">Resultado</h2>
+        <canvas id="grafico" height="90"></canvas>
+        <div class="tabela-scroll" style="margin-top:16px;">
+            <table id="tabelaResultado">
+                <thead>
+                <tr><th>Chave</th><th>Valor</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <p class="vazio" id="vazioResultado" style="display:none;">Sem dados pra essa combinação ainda.</p>
+    </section>
+</main>
+
+<script th:inline="javascript">
+    const camposPorFonte = /*[[${camposPorFonte}]]*/ {};
+    const metricasPorFonte = /*[[${metricasPorFonte}]]*/ {};
+
+    const rotulosCampo = {
+        estagio: 'Estágio', responsavel: 'Responsável', regraNegociacao: 'Regra de negociação',
+        status: 'Status', tag: 'Tag'
+    };
+    const rotulosMetrica = {
+        contagem: 'Contagem', somaValor: 'Soma do valor', somaTotal: 'Soma do total',
+        somaProduto: 'Soma do produto', somaServico: 'Soma do serviço'
+    };
+
+    const selectFonte = document.getElementById('fonte');
+    const selectAgrupar = document.getElementById('agruparPor');
+    const selectMetrica = document.getElementById('metrica');
+
+    function popularDependentes() {
+        const fonte = selectFonte.value;
+        selectAgrupar.innerHTML = (camposPorFonte[fonte] || [])
+            .map(c => `<option value="${c}">${rotulosCampo[c] || c}</option>`).join('');
+        selectMetrica.innerHTML = (metricasPorFonte[fonte] || [])
+            .map(m => `<option value="${m}">${rotulosMetrica[m] || m}</option>`).join('');
+    }
+    selectFonte.addEventListener('change', popularDependentes);
+    popularDependentes();
+
+    let grafico = null;
+
+    document.getElementById('formRelatorio').addEventListener('submit', async (evento) => {
+        evento.preventDefault();
+        const params = new URLSearchParams({
+            fonte: selectFonte.value,
+            agruparPor: selectAgrupar.value,
+            metrica: selectMetrica.value
+        });
+        const resposta = await fetch('/api/relatorios/gerar?' + params.toString());
+        const linhas = await resposta.json();
+
+        document.getElementById('tituloResultado').textContent =
+            (rotulosMetrica[selectMetrica.value] || selectMetrica.value) + ' por ' +
+            (rotulosCampo[selectAgrupar.value] || selectAgrupar.value);
+
+        const corpoTabela = document.querySelector('#tabelaResultado tbody');
+        corpoTabela.innerHTML = linhas.map(l => `<tr><td>${l.chave}</td><td class="numero">${l.valor}</td></tr>`).join('');
+        document.getElementById('vazioResultado').style.display = linhas.length ? 'none' : 'block';
+
+        const root = getComputedStyle(document.documentElement);
+        const corSerie = root.getPropertyValue('--series-1').trim();
+        const corGrid = root.getPropertyValue('--grid').trim();
+        const corTexto = root.getPropertyValue('--text-secondary').trim();
+
+        if (grafico) grafico.destroy();
+        grafico = new Chart(document.getElementById('grafico'), {
+            type: 'bar',
+            data: {
+                labels: linhas.map(l => l.chave),
+                datasets: [{ data: linhas.map(l => l.valor), backgroundColor: corSerie }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: corTexto } },
+                    y: { grid: { color: corGrid }, ticks: { color: corTexto }, beginAtZero: true }
+                }
+            }
+        });
+    });
+
+    document.getElementById('formRelatorio').requestSubmit();
+</script>
+</body>
+</html>

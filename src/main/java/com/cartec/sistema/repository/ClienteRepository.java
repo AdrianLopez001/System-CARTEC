@@ -11,6 +11,10 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
 
     Optional<Cliente> findByTelefone(String telefone);
 
+    Optional<Cliente> findByNomeIgnoreCase(String nome);
+
+    java.util.List<Cliente> findByEmpresaId(Long empresaId);
+
     List<Cliente> findByTagIgnoreCaseOrderByNomeAsc(String tag);
 
     @Query("select distinct c.tag from Cliente c where c.tag is not null and c.tag <> '' order by c.tag")

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<style th:fragment="base">
+    :root {
+        color-scheme: light;
+        --surface-1: #fcfcfb;
+        --page: #f9f9f7;
+        --text-primary: #0b0b0b;
+        --text-secondary: #52514e;
+        --muted: #898781;
+        --grid: #e1e0d9;
+        --baseline: #c3c2b7;
+        --series-1: #2a78d6;
+        --series-2: #d68f2a;
+        --good: #006300;
+        --bad: #a30000;
+    }
+    @media (prefers-color-scheme: dark) {
+        :root:where(:not([data-theme="light"])) {
+            color-scheme: dark;
+            --surface-1: #1a1a19;
+            --page: #0d0d0d;
+            --text-primary: #ffffff;
+            --text-secondary: #c3c2b7;
+            --muted: #898781;
+            --grid: #2c2c2a;
+            --baseline: #383835;
+            --series-1: #3987e5;
+            --series-2: #e5a53f;
+            --good: #0ca30c;
+            --bad: #e5484d;
+        }
+    }
+    :root[data-theme="dark"] {
+        color-scheme: dark;
+        --surface-1: #1a1a19;
+        --page: #0d0d0d;
+        --text-primary: #ffffff;
+        --text-secondary: #c3c2b7;
+        --muted: #898781;
+        --grid: #2c2c2a;
+        --baseline: #383835;
+        --series-1: #3987e5;
+        --series-2: #e5a53f;
+        --good: #0ca30c;
+        --bad: #e5484d;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        background: var(--page);
+        color: var(--text-primary);
+    }
+    header {
+        padding: 24px clamp(16px, 4vw, 40px) 8px;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    header h1 { font-size: 1.25rem; margin: 0 0 4px; }
+    header p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
+    nav { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.85rem; }
+    nav a { color: var(--series-1); text-decoration: none; }
+    nav a:hover { text-decoration: underline; }
+    nav a.ativo { color: var(--text-primary); font-weight: 600; text-decoration: none; }
+
+    main {
+        padding: 16px clamp(16px, 4vw, 40px) 40px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .tiles {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+    }
+    .tile {
+        background: var(--surface-1);
+        border: 1px solid var(--grid);
+        border-radius: 10px;
+        padding: 16px 20px;
+    }
+    .tile .label { color: var(--text-secondary); font-size: 0.85rem; }
+    .tile .value { font-size: 1.6rem; font-weight: 600; margin-top: 4px; font-variant-numeric: proportional-nums; }
+    .tile .value.dash { color: var(--muted); font-weight: 400; font-size: 1.1rem; }
+
+    .card {
+        background: var(--surface-1);
+        border: 1px solid var(--grid);
+        border-radius: 10px;
+        padding: 20px;
+    }
+    .card h2 { font-size: 1rem; margin: 0 0 4px; }
+    .card .descricao { color: var(--text-secondary); font-size: 0.85rem; margin: 0 0 16px; }
+
+    label { display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px; }
+    input[type=text], input[type=file], input[type=date], input[type=number], select, textarea {
+        padding: 8px 10px;
+        border: 1px solid var(--grid);
+        border-radius: 6px;
+        background: var(--page);
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 0.9rem;
+        margin-bottom: 14px;
+    }
+    textarea { min-height: 70px; resize: vertical; width: 100%; }
+    select, input[type=text], input[type=date], input[type=number] { width: 100%; }
+
+    button, .botao {
+        background: var(--series-1);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 9px 18px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+    }
+    button:hover, .botao:hover { opacity: 0.9; }
+    button.secundario { background: transparent; color: var(--series-1); border: 1px solid var(--series-1); }
+
+    .resultado {
+        margin-top: 14px;
+        padding: 10px 14px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        display: none;
+    }
+    .resultado.ok { background: color-mix(in srgb, var(--good) 12%, transparent); color: var(--good); display: block; }
+    .resultado.erro { background: color-mix(in srgb, var(--bad) 12%, transparent); color: var(--bad); display: block; }
+    .resultado ul { margin: 6px 0 0; padding-left: 18px; }
+
+    table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+    th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--grid); }
+    th { color: var(--text-secondary); font-weight: 500; }
+    td.numero { font-variant-numeric: tabular-nums; text-align: right; }
+    .tabela-scroll { overflow-x: auto; }
+    .vazio { color: var(--muted); font-size: 0.85rem; }
+
+    .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        background: color-mix(in srgb, var(--series-1) 15%, transparent);
+        color: var(--series-1);
+    }
+    .badge.concluida { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
+
+    .grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
+    @media (max-width: 720px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+    .timeline li { border-left: 2px solid var(--grid); padding: 2px 0 2px 14px; }
+    .timeline .tipo { font-size: 0.75rem; color: var(--series-1); font-weight: 600; text-transform: uppercase; }
+    .timeline .data { font-size: 0.75rem; color: var(--muted); margin-left: 8px; }
+    .timeline .titulo { font-size: 0.9rem; margin-top: 2px; }
+    .timeline .descricao { font-size: 0.82rem; color: var(--text-secondary); }
+</style>
+</head>
+<body></body>
+</html>

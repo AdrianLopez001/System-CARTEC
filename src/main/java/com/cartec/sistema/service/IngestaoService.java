@@ -2,6 +2,7 @@ package com.cartec.sistema.service;
 
 import com.cartec.sistema.dto.ResultadoImportacao;
 import com.cartec.sistema.model.OrdemServico;
+import com.cartec.sistema.repository.ClienteRepository;
 import com.cartec.sistema.repository.OrdemServicoRepository;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -30,9 +31,11 @@ import java.util.List;
 public class IngestaoService {
 
     private final OrdemServicoRepository ordemServicoRepository;
+    private final ClienteRepository clienteRepository;
 
-    public IngestaoService(OrdemServicoRepository ordemServicoRepository) {
+    public IngestaoService(OrdemServicoRepository ordemServicoRepository, ClienteRepository clienteRepository) {
         this.ordemServicoRepository = ordemServicoRepository;
+        this.clienteRepository = clienteRepository;
     }
 
     public ResultadoImportacao importarConferenciaOsPdf(MultipartFile arquivo) throws IOException {
@@ -67,6 +70,9 @@ public class IngestaoService {
             ordemServico.setValorProduto(os.valorProduto);
             ordemServico.setValorServico(os.valorServico);
             ordemServico.setValorTotal(os.valorTotal);
+            if (os.cliente != null) {
+                clienteRepository.findByNomeIgnoreCase(os.cliente).ifPresent(ordemServico::setClienteCadastro);
+            }
             ordemServicoRepository.save(ordemServico);
             totalGravado++;
         }

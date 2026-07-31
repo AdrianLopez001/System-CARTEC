@@ -1,17 +1,19 @@
 package com.cartec.sistema.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Cliente da base de CRM: usado para segmentar campanhas de disparo por tag
- * (ex: B2B, Frotas, Varejo, Inativo) e gerar os links wa.me com a mensagem
- * definida na campanha.
+ * Empresa (conta B2B/Frotas) - agrupa clientes/contatos individuais. Ver
+ * CLAUDE.md, prioridade 2 da estrategia (B2B/frotas na semana 1).
  */
 @Entity
-@Table(name = "cliente")
-public class Cliente {
+@Table(name = "empresa")
+public class Empresa {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,14 +22,17 @@ public class Cliente {
     @Column(name = "nome", nullable = false)
     private String nome;
 
-    @Column(name = "telefone", nullable = false, unique = true)
+    @Column(name = "cnpj")
+    private String cnpj;
+
+    @Column(name = "segmento")
+    private String segmento;
+
+    @Column(name = "telefone")
     private String telefone;
 
     @Column(name = "email")
     private String email;
-
-    @Column(name = "tag")
-    private String tag;
 
     @Column(name = "observacoes")
     private String observacoes;
@@ -35,9 +40,9 @@ public class Cliente {
     @Column(name = "data_cadastro")
     private LocalDate dataCadastro;
 
-    @ManyToOne
-    @JoinColumn(name = "empresa_id")
-    private Empresa empresa;
+    @OneToMany(mappedBy = "empresa")
+    @JsonIgnore
+    private List<Cliente> contatos = new ArrayList<>();
 
     @PrePersist
     public void aoCriar() {
@@ -62,6 +67,22 @@ public class Cliente {
         this.nome = nome;
     }
 
+    public String getCnpj() {
+        return cnpj;
+    }
+
+    public void setCnpj(String cnpj) {
+        this.cnpj = cnpj;
+    }
+
+    public String getSegmento() {
+        return segmento;
+    }
+
+    public void setSegmento(String segmento) {
+        this.segmento = segmento;
+    }
+
     public String getTelefone() {
         return telefone;
     }
@@ -76,14 +97,6 @@ public class Cliente {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getTag() {
-        return tag;
-    }
-
-    public void setTag(String tag) {
-        this.tag = tag;
     }
 
     public String getObservacoes() {
@@ -102,11 +115,11 @@ public class Cliente {
         this.dataCadastro = dataCadastro;
     }
 
-    public Empresa getEmpresa() {
-        return empresa;
+    public List<Cliente> getContatos() {
+        return contatos;
     }
 
-    public void setEmpresa(Empresa empresa) {
-        this.empresa = empresa;
+    public void setContatos(List<Cliente> contatos) {
+        this.contatos = contatos;
     }
 }

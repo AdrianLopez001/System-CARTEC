@@ -61,6 +61,10 @@ public class OrdemServico {
     @Column(name = "custo_total", precision = 12, scale = 2)
     private BigDecimal custoTotal;
 
+    @ManyToOne
+    @JoinColumn(name = "cliente_cadastro_id")
+    private Cliente clienteCadastro;
+
     @OneToMany(mappedBy = "ordemServico", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ItemServico> itens = new ArrayList<>();
 
@@ -190,5 +194,13 @@ public class OrdemServico {
 
     public void setItens(List<ItemServico> itens) {
         this.itens = itens;
+    }
+
+    public Cliente getClienteCadastro() {
+        return clienteCadastro;
+    }
+
+    public void setClienteCadastro(Cliente clienteCadastro) {
+        this.clienteCadastro = clienteCadastro;
     }
 }

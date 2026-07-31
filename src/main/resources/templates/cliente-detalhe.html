@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'Cartec — ' + ${cliente.nome}">Cartec — Cliente</title>
+    <style th:replace="~{fragments/estilos :: base}"></style>
+</head>
+<body>
+<header>
+    <div>
+        <h1 th:text="${cliente.nome}">Nome</h1>
+        <p th:text="${cliente.telefone} + (${cliente.tag} != null ? ' · ' + ${cliente.tag} : '')">Telefone</p>
+    </div>
+    <nav th:replace="~{fragments/nav :: menu}"></nav>
+</header>
+<main>
+    <div class="grid-2">
+        <div style="display:flex; flex-direction:column; gap:20px;">
+
+            <section class="card">
+                <h2>Adicionar nota</h2>
+                <form id="formNota">
+                    <input type="hidden" id="notaClienteId" th:value="${cliente.id}">
+                    <textarea id="notaTexto" placeholder="Ex: prefere contato por telefone, reclamou do prazo..." required></textarea>
+                    <button type="submit">Salvar nota</button>
+                </form>
+            </section>
+
+            <section class="card">
+                <h2>Timeline</h2>
+                <ul class="timeline" th:unless="${timeline.isEmpty()}">
+                    <li th:each="e : ${timeline}">
+                        <span class="tipo" th:text="${e.tipo}">Tipo</span>
+                        <span class="data" th:text="${e.data != null ? #temporals.format(e.data, 'dd/MM/yyyy HH:mm') : ''}">data</span>
+                        <div class="titulo" th:text="${e.titulo}">Título</div>
+                        <div class="descricao" th:if="${e.descricao != null and !e.descricao.isEmpty()}" th:text="${e.descricao}">Descrição</div>
+                    </li>
+                </ul>
+                <p class="vazio" th:if="${timeline.isEmpty()}">Sem histórico ainda.</p>
+            </section>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:20px;">
+            <section class="card">
+                <h2>Dados</h2>
+                <p><strong>Email:</strong> <span th:text="${cliente.email} ?: '-'">-</span></p>
+                <p><strong>Empresa:</strong> <span th:text="${cliente.empresa != null ? cliente.empresa.nome : '-'}">-</span></p>
+                <p><strong>Observações:</strong> <span th:text="${cliente.observacoes} ?: '-'">-</span></p>
+                <p><strong>Cadastrado em:</strong> <span th:text="${#temporals.format(cliente.dataCadastro, 'dd/MM/yyyy')}">-</span></p>
+            </section>
+
+            <section class="card">
+                <h2>Negociações</h2>
+                <div th:each="n : ${negociacoes}" style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--grid);">
+                    <div th:text="${n.titulo}">Título</div>
+                    <span class="badge" th:text="${n.estagio.rotulo}">Estágio</span>
+                    <span th:if="${n.valor != null}" th:text="' · R$ ' + ${#numbers.formatDecimal(n.valor, 1, 'POINT', 2, 'COMMA')}"></span>
+                </div>
+                <p class="vazio" th:if="${negociacoes.isEmpty()}">Nenhuma negociação ainda.</p>
+                <a class="botao" href="/negociacoes">Nova negociação →</a>
+            </section>
+
+            <section class="card">
+                <h2>Tarefas</h2>
+                <div th:each="t : ${tarefas}" style="margin-bottom:8px;">
+                    <span class="badge" th:classappend="${t.concluida} ? 'concluida' : ''" th:text="${t.concluida} ? 'Feita' : 'Pendente'">Status</span>
+                    <span th:text="${t.titulo}">Título</span>
+                    <span th:if="${t.dataVencimento != null}" class="descricao" th:text="' (' + ${#temporals.format(t.dataVencimento, 'dd/MM')} + ')'"></span>
+                </div>
+                <p class="vazio" th:if="${tarefas.isEmpty()}">Nenhuma tarefa ainda.</p>
+                <a class="botao" href="/tarefas">Nova tarefa →</a>
+            </section>
+        </div>
+    </div>
+</main>
+
+<script>
+    document.getElementById('formNota').addEventListener('submit', async (evento) => {
+        evento.preventDefault();
+        const clienteId = document.getElementById('notaClienteId').value;
+        const texto = document.getElementById('notaTexto').value;
+        const resposta = await fetch('/api/notas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cliente: { id: Number(clienteId) }, texto: texto })
+        });
+        if (resposta.ok) {
+            window.location.reload();
+        } else {
+            alert('Erro ao salvar nota (HTTP ' + resposta.status + ')');
+        }
+    });
+</script>
+</body>
+</html>

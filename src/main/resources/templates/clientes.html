@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Cartec — Clientes</title>
+    <style th:replace="~{fragments/estilos :: base}"></style>
+</head>
+<body>
+<header>
+    <div>
+        <h1>Clientes</h1>
+        <p th:text="${clientes.size()} + ' cadastrados'">0 cadastrados</p>
+    </div>
+    <nav th:replace="~{fragments/nav :: menu}"></nav>
+</header>
+<main>
+    <section class="card">
+        <div class="tabela-scroll">
+            <table th:unless="${clientes.isEmpty()}">
+                <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Telefone</th>
+                    <th>Tag</th>
+                    <th>Empresa</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="c : ${clientes}">
+                    <td><a th:href="@{'/clientes/' + ${c.id}}" th:text="${c.nome}">Nome</a></td>
+                    <td th:text="${c.telefone}">-</td>
+                    <td th:text="${c.tag}">-</td>
+                    <td th:text="${c.empresa != null ? c.empresa.nome : '-'}">-</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="vazio" th:if="${clientes.isEmpty()}">Nenhum cliente cadastrado ainda. Importe pela tela de <a href="/campanhas">CRM e Campanhas</a>.</p>
+    </section>
+</main>
+</body>
+</html>
