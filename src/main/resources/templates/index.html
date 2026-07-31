@@ -4,124 +4,16 @@
     <meta charset="UTF-8">
     <title>Cartec — Visão da Semana</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-    <style>
-        :root {
-            color-scheme: light;
-            --surface-1: #fcfcfb;
-            --page: #f9f9f7;
-            --text-primary: #0b0b0b;
-            --text-secondary: #52514e;
-            --muted: #898781;
-            --grid: #e1e0d9;
-            --baseline: #c3c2b7;
-            --series-1: #2a78d6;
-            --good: #006300;
-        }
-        @media (prefers-color-scheme: dark) {
-            :root:where(:not([data-theme="light"])) {
-                color-scheme: dark;
-                --surface-1: #1a1a19;
-                --page: #0d0d0d;
-                --text-primary: #ffffff;
-                --text-secondary: #c3c2b7;
-                --muted: #898781;
-                --grid: #2c2c2a;
-                --baseline: #383835;
-                --series-1: #3987e5;
-                --good: #0ca30c;
-            }
-        }
-        :root[data-theme="dark"] {
-            color-scheme: dark;
-            --surface-1: #1a1a19;
-            --page: #0d0d0d;
-            --text-primary: #ffffff;
-            --text-secondary: #c3c2b7;
-            --muted: #898781;
-            --grid: #2c2c2a;
-            --baseline: #383835;
-            --series-1: #3987e5;
-            --good: #0ca30c;
-        }
-
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-            background: var(--page);
-            color: var(--text-primary);
-        }
-        header {
-            padding: 24px clamp(16px, 4vw, 40px) 8px;
-        }
-        header h1 { font-size: 1.25rem; margin: 0 0 4px; }
-        header p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
-        header {
-            display: flex;
-            align-items: baseline;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        header nav a {
-            color: var(--series-1);
-            text-decoration: none;
-            font-size: 0.9rem;
-        }
-        header nav a:hover { text-decoration: underline; }
-
-        main {
-            padding: 16px clamp(16px, 4vw, 40px) 40px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .tiles {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 16px;
-        }
-        .tile {
-            background: var(--surface-1);
-            border: 1px solid var(--grid);
-            border-radius: 10px;
-            padding: 16px 20px;
-        }
-        .tile .label { color: var(--text-secondary); font-size: 0.85rem; }
-        .tile .value {
-            font-size: 1.9rem;
-            font-weight: 600;
-            margin-top: 4px;
-            font-variant-numeric: proportional-nums;
-        }
-        .tile .value.dash { color: var(--muted); font-weight: 400; }
-        .tile .value.positiva { color: var(--good); }
-
-        .card {
-            background: var(--surface-1);
-            border: 1px solid var(--grid);
-            border-radius: 10px;
-            padding: 20px;
-            overflow-x: auto;
-        }
-        .card h2 { font-size: 1rem; margin: 0 0 12px; }
-        .card .vazio { color: var(--muted); font-size: 0.9rem; }
-
-        table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
-        th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--grid); }
-        th { color: var(--text-secondary); font-weight: 500; }
-        td.numero { font-variant-numeric: tabular-nums; text-align: right; }
-    </style>
+    <style th:replace="~{fragments/estilos :: base}"></style>
 </head>
 <body>
-<header>
+<header th:replace="~{fragments/nav :: topbar}"></header>
+<div class="page-header">
     <div>
         <h1>Cartec — Service e Peças</h1>
         <p>Visão da semana · ticket médio, variação e % da meta</p>
     </div>
-    <nav th:replace="~{fragments/nav :: menu}"></nav>
-</header>
+</div>
 <main>
     <section class="tiles">
         <div class="tile">
@@ -155,30 +47,33 @@
 
     <section class="card">
         <h2>Histórico</h2>
-        <table th:unless="${metricas.isEmpty()}">
-            <thead>
-            <tr>
-                <th>Semana</th>
-                <th>Ticket médio</th>
-                <th>Atendimentos</th>
-                <th>B2B contatadas</th>
-                <th>Propostas fechadas</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr th:each="m : ${metricas}">
-                <td th:text="${#temporals.format(m.semanaInicio, 'dd/MM/yyyy')}">01/01/2026</td>
-                <td class="numero" th:text="${m.ticketMedio}">0</td>
-                <td class="numero" th:text="${m.numeroAtendimentos}">0</td>
-                <td class="numero" th:text="${m.empresasB2bContatadas}">0</td>
-                <td class="numero" th:text="${m.propostasFechadas}">0</td>
-            </tr>
-            </tbody>
-        </table>
+        <div class="tabela-scroll">
+            <table th:unless="${metricas.isEmpty()}">
+                <thead>
+                <tr>
+                    <th>Semana</th>
+                    <th>Ticket médio</th>
+                    <th>Atendimentos</th>
+                    <th>B2B contatadas</th>
+                    <th>Propostas fechadas</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="m : ${metricas}">
+                    <td th:text="${#temporals.format(m.semanaInicio, 'dd/MM/yyyy')}">01/01/2026</td>
+                    <td class="numero" th:text="${m.ticketMedio}">0</td>
+                    <td class="numero" th:text="${m.numeroAtendimentos}">0</td>
+                    <td class="numero" th:text="${m.empresasB2bContatadas}">0</td>
+                    <td class="numero" th:text="${m.propostasFechadas}">0</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
         <p class="vazio" th:if="${metricas.isEmpty()}">Sem histórico para exibir ainda.</p>
     </section>
 </main>
 
+<script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
 <script th:inline="javascript" th:unless="${metricas.isEmpty()}">
     const labels = /*[[${metricas.![#temporals.format(semanaInicio, 'dd/MM')]}]]*/ [];
     const valores = /*[[${metricas.![ticketMedio]}]]*/ [];

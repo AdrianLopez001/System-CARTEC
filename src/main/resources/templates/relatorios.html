@@ -7,13 +7,13 @@
     <style th:replace="~{fragments/estilos :: base}"></style>
 </head>
 <body>
-<header>
+<header th:replace="~{fragments/nav :: topbar}"></header>
+<div class="page-header">
     <div>
         <h1>Relatórios</h1>
         <p>Escolha a fonte, o campo pra agrupar e a métrica</p>
     </div>
-    <nav th:replace="~{fragments/nav :: menu}"></nav>
-</header>
+</div>
 <main>
     <section class="card">
         <form id="formRelatorio" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:0 16px; align-items:end;">
@@ -54,6 +54,7 @@
     </section>
 </main>
 
+<script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
 <script th:inline="javascript">
     const camposPorFonte = /*[[${camposPorFonte}]]*/ {};
     const metricasPorFonte = /*[[${metricasPorFonte}]]*/ {};

@@ -6,13 +6,13 @@
     <style th:replace="~{fragments/estilos :: base}"></style>
 </head>
 <body>
-<header>
+<header th:replace="~{fragments/nav :: topbar}"></header>
+<div class="page-header">
     <div>
         <h1 th:text="${cliente.nome}">Nome</h1>
         <p th:text="${cliente.telefone} + (${cliente.tag} != null ? ' · ' + ${cliente.tag} : '')">Telefone</p>
     </div>
-    <nav th:replace="~{fragments/nav :: menu}"></nav>
-</header>
+</div>
 <main>
     <div class="grid-2">
         <div style="display:flex; flex-direction:column; gap:20px;">
@@ -74,6 +74,7 @@
     </div>
 </main>
 
+<script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
 <script>
     document.getElementById('formNota').addEventListener('submit', async (evento) => {
         evento.preventDefault();

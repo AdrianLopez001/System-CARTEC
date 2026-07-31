@@ -6,21 +6,21 @@
     <style th:replace="~{fragments/estilos :: base}"></style>
     <style>
         .quadro { display: grid; grid-template-columns: repeat(5, minmax(200px, 1fr)); gap: 12px; overflow-x: auto; }
-        .coluna { background: var(--surface-1); border: 1px solid var(--grid); border-radius: 10px; padding: 12px; min-width: 200px; }
-        .coluna h3 { font-size: 0.85rem; margin: 0 0 10px; color: var(--text-secondary); }
-        .deal { background: var(--page); border: 1px solid var(--grid); border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 0.85rem; }
-        .deal .valor { font-weight: 600; margin-top: 4px; }
+        .coluna { background: var(--surface-1); border: 1px solid var(--grid); border-radius: 4px; padding: 12px; min-width: 200px; }
+        .coluna h3 { font-size: 0.78rem; margin: 0 0 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.02em; font-weight: 600; }
+        .deal { background: var(--page); border: 1px solid var(--grid); border-left: 3px solid var(--brand); border-radius: 4px; padding: 10px; margin-bottom: 8px; font-size: 0.85rem; }
+        .deal .valor { font-weight: 700; margin-top: 4px; }
         .deal select { margin-top: 8px; font-size: 0.78rem; padding: 4px 6px; margin-bottom: 0; }
     </style>
 </head>
 <body>
-<header>
+<header th:replace="~{fragments/nav :: topbar}"></header>
+<div class="page-header">
     <div>
         <h1>Negociações</h1>
         <p th:text="${negociacoes.size()} + ' no funil'">0 no funil</p>
     </div>
-    <nav th:replace="~{fragments/nav :: menu}"></nav>
-</header>
+</div>
 <main>
     <section class="card">
         <h2>Nova negociação</h2>
@@ -65,6 +65,7 @@
     </section>
 </main>
 
+<script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
 <script>
     document.getElementById('formNegociacao').addEventListener('submit', async (evento) => {
         evento.preventDefault();
