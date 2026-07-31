@@ -1,6 +1,8 @@
 package com.cartec.sistema.service;
 
 import com.cartec.sistema.dto.ResultadoImportacao;
+import com.cartec.sistema.model.OrdemServico;
+import com.cartec.sistema.repository.OrdemServicoRepository;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -13,25 +15,53 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Modulo 1 do plano-sistema-java: carga de dados historicos (ConferenciaOS.pdf,
  * ConferenciaOSItem.xls, VendaPorDia.pdf).
  * <p>
- * A extracao de texto/planilha abaixo ja funciona; o mapeamento linha-a-linha para
- * OrdemServico/ItemServico/VendaDiaria (colunas fixas, descarte de OS nao numerica etc.,
- * ver secao 4) fica marcado como TODO ate confirmarmos o layout exato do export atual.
+ * ConferenciaOS.pdf ja tem parser real (ver ConferenciaOsParser, layout confirmado
+ * em 31/07/2026). Os outros dois arquivos ainda nao tiveram o layout confirmado -
+ * continuam so contando linhas ate a gente ver um export de exemplo.
  */
 @Service
 public class IngestaoService {
 
+    private final OrdemServicoRepository ordemServicoRepository;
+
+    public IngestaoService(OrdemServicoRepository ordemServicoRepository) {
+        this.ordemServicoRepository = ordemServicoRepository;
+    }
+
     public ResultadoImportacao importarConferenciaOsPdf(MultipartFile arquivo) throws IOException {
         String texto = extrairTextoPdf(arquivo);
-        int totalLinhas = (int) texto.lines().count();
+        ConferenciaOsParser.Resultado resultado = ConferenciaOsParser.parse(texto);
 
-        // TODO: parsear tabela de OS (numero, data, cliente, placa, veiculo, status,
-        // valor total, custo total) a partir do texto extraido e gravar via OrdemServicoRepository.
-        return ResultadoImportacao.of(totalLinhas, 0);
+        List<String> divergencias = new ArrayList<>(resultado.divergencias());
+        int totalGravado = 0;
+
+        for (ConferenciaOsParser.OsImportada os : resultado.ordens()) {
+            OrdemServico ordemServico = ordemServicoRepository.findByNumero(os.numero).orElseGet(OrdemServico::new);
+            ordemServico.setNumero(os.numero);
+            ordemServico.setData(os.data);
+            ordemServico.setCliente(os.cliente);
+            ordemServico.setStatus(os.status);
+            ordemServico.setResponsavel(os.responsavel);
+            ordemServico.setPlaca(os.placa);
+            ordemServico.setRegraNegociacao(os.regraNegociacao);
+            ordemServico.setDataFinalizacao(os.dataFinalizacao);
+            ordemServico.setDataFaturamento(os.dataFaturamento);
+            ordemServico.setValorProduto(os.valorProduto);
+            ordemServico.setValorServico(os.valorServico);
+            ordemServico.setValorTotal(os.valorTotal);
+            ordemServicoRepository.save(ordemServico);
+            totalGravado++;
+        }
+
+        int totalLinhas = resultado.ordens().size() + resultado.divergencias().size();
+        return new ResultadoImportacao(totalLinhas, totalGravado, divergencias);
     }
 
     public ResultadoImportacao importarConferenciaOsItemXls(MultipartFile arquivo) throws IOException {

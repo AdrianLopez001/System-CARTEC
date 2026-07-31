@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Cartec — Faturamento (Ordens de Serviço)</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --surface-1: #fcfcfb;
+            --page: #f9f9f7;
+            --text-primary: #0b0b0b;
+            --text-secondary: #52514e;
+            --muted: #898781;
+            --grid: #e1e0d9;
+            --baseline: #c3c2b7;
+            --series-1: #2a78d6;
+            --good: #006300;
+            --bad: #a30000;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root:where(:not([data-theme="light"])) {
+                color-scheme: dark;
+                --surface-1: #1a1a19;
+                --page: #0d0d0d;
+                --text-primary: #ffffff;
+                --text-secondary: #c3c2b7;
+                --muted: #898781;
+                --grid: #2c2c2a;
+                --baseline: #383835;
+                --series-1: #3987e5;
+                --good: #0ca30c;
+                --bad: #e5484d;
+            }
+        }
+        :root[data-theme="dark"] {
+            color-scheme: dark;
+            --surface-1: #1a1a19;
+            --page: #0d0d0d;
+            --text-primary: #ffffff;
+            --text-secondary: #c3c2b7;
+            --muted: #898781;
+            --grid: #2c2c2a;
+            --baseline: #383835;
+            --series-1: #3987e5;
+            --good: #0ca30c;
+            --bad: #e5484d;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            background: var(--page);
+            color: var(--text-primary);
+        }
+        header {
+            padding: 24px clamp(16px, 4vw, 40px) 8px;
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        header h1 { font-size: 1.25rem; margin: 0 0 4px; }
+        header p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
+        nav a { color: var(--series-1); text-decoration: none; font-size: 0.9rem; }
+        nav a:hover { text-decoration: underline; }
+
+        main {
+            padding: 16px clamp(16px, 4vw, 40px) 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .tiles {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+        .tile {
+            background: var(--surface-1);
+            border: 1px solid var(--grid);
+            border-radius: 10px;
+            padding: 16px 20px;
+        }
+        .tile .label { color: var(--text-secondary); font-size: 0.85rem; }
+        .tile .value { font-size: 1.6rem; font-weight: 600; margin-top: 4px; font-variant-numeric: proportional-nums; }
+        .tile .value.dash { color: var(--muted); font-weight: 400; font-size: 1.1rem; }
+
+        .card {
+            background: var(--surface-1);
+            border: 1px solid var(--grid);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .card h2 { font-size: 1rem; margin: 0 0 4px; }
+        .card .descricao { color: var(--text-secondary); font-size: 0.85rem; margin: 0 0 16px; }
+
+        input[type=file] {
+            padding: 8px 10px;
+            border: 1px solid var(--grid);
+            border-radius: 6px;
+            background: var(--page);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            margin-right: 10px;
+        }
+        button {
+            background: var(--series-1);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 9px 18px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        button:hover { opacity: 0.9; }
+
+        .resultado {
+            margin-top: 14px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            display: none;
+        }
+        .resultado.ok { background: color-mix(in srgb, var(--good) 12%, transparent); color: var(--good); display: block; }
+        .resultado.erro { background: color-mix(in srgb, var(--bad) 12%, transparent); color: var(--bad); display: block; }
+        .resultado ul { margin: 6px 0 0; padding-left: 18px; }
+
+        table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+        th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+        th { color: var(--text-secondary); font-weight: 500; }
+        td.numero { font-variant-numeric: tabular-nums; text-align: right; }
+        .tabela-scroll { overflow-x: auto; }
+        .vazio { color: var(--muted); font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+<header>
+    <div>
+        <h1>Cartec — Faturamento (Ordens de Serviço)</h1>
+        <p>Importado de ConferenciaOS.pdf (Oficina Inteligente)</p>
+    </div>
+    <nav><a href="/">← Voltar pro dashboard</a></nav>
+</header>
+<main>
+    <section class="card">
+        <h2>Importar relatório</h2>
+        <p class="descricao">Envie o PDF "Listagem de Ordens de Serviço" exportado da Oficina Inteligente.</p>
+        <form id="formUpload">
+            <input type="file" id="arquivoOs" name="arquivo" accept=".pdf" required>
+            <button type="submit">Importar</button>
+        </form>
+        <div id="resultadoUpload" class="resultado"></div>
+    </section>
+
+    <section class="tiles">
+        <div class="tile">
+            <div class="label">Total de OS</div>
+            <div class="value" th:text="${totalOs}">0</div>
+        </div>
+        <div class="tile">
+            <div class="label">Faturamento total</div>
+            <div class="value" th:if="${totalOs > 0}"
+                 th:text="${'R$ ' + #numbers.formatDecimal(totalGeral, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+            <div class="value dash" th:if="${totalOs == 0}">sem dado ainda</div>
+        </div>
+        <div class="tile">
+            <div class="label">Produto</div>
+            <div class="value" th:if="${totalOs > 0}"
+                 th:text="${'R$ ' + #numbers.formatDecimal(totalProduto, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+            <div class="value dash" th:if="${totalOs == 0}">—</div>
+        </div>
+        <div class="tile">
+            <div class="label">Serviço</div>
+            <div class="value" th:if="${totalOs > 0}"
+                 th:text="${'R$ ' + #numbers.formatDecimal(totalServico, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+            <div class="value dash" th:if="${totalOs == 0}">—</div>
+        </div>
+        <div class="tile">
+            <div class="label">Ticket médio</div>
+            <div class="value" th:if="${totalOs > 0}"
+                 th:text="${'R$ ' + #numbers.formatDecimal(ticketMedio, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+            <div class="value dash" th:if="${totalOs == 0}">—</div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Ordens de serviço</h2>
+        <div class="tabela-scroll">
+            <table th:unless="${ordens.isEmpty()}">
+                <thead>
+                <tr>
+                    <th>OS</th>
+                    <th>Faturamento</th>
+                    <th>Cliente</th>
+                    <th>Placa</th>
+                    <th>Responsável</th>
+                    <th>Status</th>
+                    <th>Produto</th>
+                    <th>Serviço</th>
+                    <th>Total</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="os : ${ordens}">
+                    <td th:text="${os.numero}">0</td>
+                    <td th:text="${os.dataFaturamento != null ? #temporals.format(os.dataFaturamento, 'dd/MM/yyyy') : '-'}">-</td>
+                    <td th:text="${os.cliente}">-</td>
+                    <td th:text="${os.placa}">-</td>
+                    <td th:text="${os.responsavel}">-</td>
+                    <td th:text="${os.status}">-</td>
+                    <td class="numero" th:text="${os.valorProduto != null ? #numbers.formatDecimal(os.valorProduto, 1, 'POINT', 2, 'COMMA') : '-'}">-</td>
+                    <td class="numero" th:text="${os.valorServico != null ? #numbers.formatDecimal(os.valorServico, 1, 'POINT', 2, 'COMMA') : '-'}">-</td>
+                    <td class="numero" th:text="${os.valorTotal != null ? #numbers.formatDecimal(os.valorTotal, 1, 'POINT', 2, 'COMMA') : '-'}">-</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="vazio" th:if="${ordens.isEmpty()}">Nenhuma OS importada ainda.</p>
+    </section>
+</main>
+
+<script>
+    document.getElementById('formUpload').addEventListener('submit', async (evento) => {
+        evento.preventDefault();
+        const input = document.getElementById('arquivoOs');
+        const caixaResultado = document.getElementById('resultadoUpload');
+        if (!input.files.length) return;
+
+        const dados = new FormData();
+        dados.append('arquivo', input.files[0]);
+
+        caixaResultado.className = 'resultado';
+        caixaResultado.textContent = '';
+
+        try {
+            const resposta = await fetch('/api/ingestao/conferencia-os-pdf', { method: 'POST', body: dados });
+            if (!resposta.ok) {
+                throw new Error('Falha no upload (HTTP ' + resposta.status + ')');
+            }
+            const resultado = await resposta.json();
+            caixaResultado.className = 'resultado ok';
+            let html = `Lidas: ${resultado.totalLinhasLidas} · Gravadas: ${resultado.totalGravado}`;
+            if (resultado.divergencias && resultado.divergencias.length) {
+                html += '<ul>' + resultado.divergencias.map(d => `<li>${d}</li>`).join('') + '</ul>';
+            }
+            html += '<br>Recarregando em 2s...';
+            caixaResultado.innerHTML = html;
+            setTimeout(() => window.location.reload(), 2000);
+        } catch (erro) {
+            caixaResultado.className = 'resultado erro';
+            caixaResultado.textContent = erro.message;
+        }
+    });
+</script>
+</body>
+</html>

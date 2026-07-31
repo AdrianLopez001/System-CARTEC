@@ -37,6 +37,24 @@ public class OrdemServico {
     @Column(name = "status")
     private String status;
 
+    @Column(name = "responsavel")
+    private String responsavel;
+
+    @Column(name = "regra_negociacao")
+    private String regraNegociacao;
+
+    @Column(name = "data_finalizacao")
+    private LocalDate dataFinalizacao;
+
+    @Column(name = "data_faturamento")
+    private LocalDate dataFaturamento;
+
+    @Column(name = "valor_produto", precision = 12, scale = 2)
+    private BigDecimal valorProduto;
+
+    @Column(name = "valor_servico", precision = 12, scale = 2)
+    private BigDecimal valorServico;
+
     @Column(name = "valor_total", precision = 12, scale = 2)
     private BigDecimal valorTotal;
 
@@ -100,6 +118,54 @@ public class OrdemServico {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getResponsavel() {
+        return responsavel;
+    }
+
+    public void setResponsavel(String responsavel) {
+        this.responsavel = responsavel;
+    }
+
+    public String getRegraNegociacao() {
+        return regraNegociacao;
+    }
+
+    public void setRegraNegociacao(String regraNegociacao) {
+        this.regraNegociacao = regraNegociacao;
+    }
+
+    public LocalDate getDataFinalizacao() {
+        return dataFinalizacao;
+    }
+
+    public void setDataFinalizacao(LocalDate dataFinalizacao) {
+        this.dataFinalizacao = dataFinalizacao;
+    }
+
+    public LocalDate getDataFaturamento() {
+        return dataFaturamento;
+    }
+
+    public void setDataFaturamento(LocalDate dataFaturamento) {
+        this.dataFaturamento = dataFaturamento;
+    }
+
+    public BigDecimal getValorProduto() {
+        return valorProduto;
+    }
+
+    public void setValorProduto(BigDecimal valorProduto) {
+        this.valorProduto = valorProduto;
+    }
+
+    public BigDecimal getValorServico() {
+        return valorServico;
+    }
+
+    public void setValorServico(BigDecimal valorServico) {
+        this.valorServico = valorServico;
     }
 
     public BigDecimal getValorTotal() {

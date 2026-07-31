@@ -12,4 +12,6 @@ public interface OrdemServicoRepository extends JpaRepository<OrdemServico, Long
     Optional<OrdemServico> findByNumero(String numero);
 
     List<OrdemServico> findByDataBetween(LocalDate inicio, LocalDate fim);
+
+    List<OrdemServico> findAllByOrderByDataFaturamentoDesc();
 }
