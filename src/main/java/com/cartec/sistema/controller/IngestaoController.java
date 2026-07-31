@@ -30,6 +30,11 @@ public class IngestaoController {
         return ingestaoService.importarConferenciaOsPdf(arquivo);
     }
 
+    @PostMapping("/conferencia-os-xlsx")
+    public ResultadoImportacao importarConferenciaOsXlsx(@RequestParam("arquivo") MultipartFile arquivo) throws IOException {
+        return ingestaoService.importarConferenciaOsXlsx(arquivo);
+    }
+
     @PostMapping("/conferencia-os-item-xls")
     public ResultadoImportacao importarConferenciaOsItemXls(@RequestParam("arquivo") MultipartFile arquivo) throws IOException {
         return ingestaoService.importarConferenciaOsItemXls(arquivo);

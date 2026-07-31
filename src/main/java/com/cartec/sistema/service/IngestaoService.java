@@ -37,8 +37,19 @@ public class IngestaoService {
 
     public ResultadoImportacao importarConferenciaOsPdf(MultipartFile arquivo) throws IOException {
         String texto = extrairTextoPdf(arquivo);
-        ConferenciaOsParser.Resultado resultado = ConferenciaOsParser.parse(texto);
+        return gravarOrdens(ConferenciaOsParser.parse(texto));
+    }
 
+    public ResultadoImportacao importarConferenciaOsXlsx(MultipartFile arquivo) throws IOException {
+        ConferenciaOsParser.Resultado resultado;
+        try (InputStream in = arquivo.getInputStream();
+             Workbook workbook = WorkbookFactory.create(in)) {
+            resultado = ConferenciaOsXlsxParser.parse(workbook.getSheetAt(0));
+        }
+        return gravarOrdens(resultado);
+    }
+
+    private ResultadoImportacao gravarOrdens(ConferenciaOsParser.Resultado resultado) {
         List<String> divergencias = new ArrayList<>(resultado.divergencias());
         int totalGravado = 0;
 

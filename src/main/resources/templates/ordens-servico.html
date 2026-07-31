@@ -148,9 +148,12 @@
 <main>
     <section class="card">
         <h2>Importar relatório</h2>
-        <p class="descricao">Envie o PDF "Listagem de Ordens de Serviço" exportado da Oficina Inteligente.</p>
+        <p class="descricao">
+            Envie a "Listagem de Ordens de Serviço" exportada da Oficina Inteligente, em .pdf ou .xlsx
+            (o .xlsx é mais confiável — o .pdf depende de reconstruir células que quebram linha).
+        </p>
         <form id="formUpload">
-            <input type="file" id="arquivoOs" name="arquivo" accept=".pdf" required>
+            <input type="file" id="arquivoOs" name="arquivo" accept=".pdf,.xlsx,.xls" required>
             <button type="submit">Importar</button>
         </form>
         <div id="resultadoUpload" class="resultado"></div>
@@ -236,8 +239,11 @@
         caixaResultado.className = 'resultado';
         caixaResultado.textContent = '';
 
+        const ehXlsx = /\.(xlsx|xls)$/i.test(input.files[0].name);
+        const endpoint = ehXlsx ? '/api/ingestao/conferencia-os-xlsx' : '/api/ingestao/conferencia-os-pdf';
+
         try {
-            const resposta = await fetch('/api/ingestao/conferencia-os-pdf', { method: 'POST', body: dados });
+            const resposta = await fetch(endpoint, { method: 'POST', body: dados });
             if (!resposta.ok) {
                 throw new Error('Falha no upload (HTTP ' + resposta.status + ')');
             }
