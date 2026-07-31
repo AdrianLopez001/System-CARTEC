@@ -35,15 +35,31 @@
     <section class="card">
         <h2>Gerar disparo</h2>
         <p class="descricao">
-            Escolhe a tag do grupo, escreve a mensagem (use <code>{nome}</code> pra puxar o primeiro
-            nome de cada cliente) e baixa o xlsx com o link wa.me já pronto por linha.
+            Escolhe o grupo (por tag ou por segmento de recência — ver <a href="/reengajamento">Reengajamento</a>),
+            escreve a mensagem (use <code>{nome}</code> pra puxar o primeiro nome de cada cliente) e baixa o
+            xlsx com o link wa.me já pronto por linha.
         </p>
-        <form action="/campanhas/exportar" method="post">
-            <label for="tag">Grupo (tag)</label>
-            <select id="tag" name="tag">
-                <option value="">Todos os clientes</option>
-                <option th:each="t : ${tags}" th:value="${t}" th:text="${t}"></option>
+        <form id="formDisparo" action="/campanhas/exportar" method="post">
+            <label for="modoGrupo">Agrupar por</label>
+            <select id="modoGrupo">
+                <option value="tag">Tag</option>
+                <option value="segmento">Segmento (recência)</option>
             </select>
+
+            <div id="blocoTag">
+                <label for="tag">Grupo (tag)</label>
+                <select id="tag" name="tag">
+                    <option value="">Todos os clientes</option>
+                    <option th:each="t : ${tags}" th:value="${t}" th:text="${t}"></option>
+                </select>
+            </div>
+
+            <div id="blocoSegmento" style="display:none;">
+                <label for="segmento">Segmento</label>
+                <select id="segmento" name="segmento" disabled>
+                    <option th:each="s : ${segmentos}" th:value="${s}" th:text="${s.rotulo}"></option>
+                </select>
+            </div>
 
             <label for="mensagem">Mensagem</label>
             <textarea id="mensagem" name="mensagem" required placeholder="Oi {nome}, tudo bem? ..."></textarea>
@@ -67,7 +83,7 @@
             <tbody>
             <tr th:each="c : ${historico}">
                 <td th:text="${#temporals.format(c.dataCriacao, 'dd/MM/yyyy HH:mm')}">01/01/2026 00:00</td>
-                <td th:text="${c.tagAlvo != null and !c.tagAlvo.isEmpty()} ? ${c.tagAlvo} : 'Todos'">Todos</td>
+                <td th:text="${c.segmentoAlvo != null ? c.segmentoAlvo.rotulo : (c.tagAlvo != null and !c.tagAlvo.isEmpty() ? c.tagAlvo : 'Todos')}">Todos</td>
                 <td th:text="${c.mensagemTemplate}">Mensagem</td>
                 <td th:text="${c.quantidadeClientes}">0</td>
             </tr>
@@ -80,6 +96,29 @@
 
 <script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
 <script>
+    const modoGrupo = document.getElementById('modoGrupo');
+    const blocoTag = document.getElementById('blocoTag');
+    const blocoSegmento = document.getElementById('blocoSegmento');
+    const selectTag = document.getElementById('tag');
+    const selectSegmento = document.getElementById('segmento');
+
+    function aplicarModo() {
+        const porSegmento = modoGrupo.value === 'segmento';
+        blocoTag.style.display = porSegmento ? 'none' : 'block';
+        blocoSegmento.style.display = porSegmento ? 'block' : 'none';
+        selectTag.disabled = porSegmento;
+        selectSegmento.disabled = !porSegmento;
+    }
+    modoGrupo.addEventListener('change', aplicarModo);
+
+    const parametros = new URLSearchParams(window.location.search);
+    const segmentoNaUrl = parametros.get('segmento');
+    if (segmentoNaUrl) {
+        modoGrupo.value = 'segmento';
+        selectSegmento.value = segmentoNaUrl;
+    }
+    aplicarModo();
+
     document.getElementById('formUpload').addEventListener('submit', async (evento) => {
         evento.preventDefault();
         const input = document.getElementById('arquivoClientes');

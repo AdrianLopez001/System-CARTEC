@@ -20,6 +20,10 @@ public class Campanha {
     @Column(name = "tag_alvo")
     private String tagAlvo;
 
+    @Column(name = "segmento_alvo")
+    @Enumerated(EnumType.STRING)
+    private SegmentoCliente segmentoAlvo;
+
     @Column(name = "mensagem_template", length = 2000, nullable = false)
     private String mensagemTemplate;
 
@@ -50,6 +54,14 @@ public class Campanha {
 
     public void setTagAlvo(String tagAlvo) {
         this.tagAlvo = tagAlvo;
+    }
+
+    public SegmentoCliente getSegmentoAlvo() {
+        return segmentoAlvo;
+    }
+
+    public void setSegmentoAlvo(SegmentoCliente segmentoAlvo) {
+        this.segmentoAlvo = segmentoAlvo;
     }
 
     public String getMensagemTemplate() {

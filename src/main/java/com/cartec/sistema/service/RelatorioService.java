@@ -29,32 +29,35 @@ public class RelatorioService {
     private final NegociacaoRepository negociacaoRepository;
     private final OrdemServicoRepository ordemServicoRepository;
     private final ClienteRepository clienteRepository;
+    private final ClienteSegmentacaoService segmentacaoService;
 
     public RelatorioService(NegociacaoRepository negociacaoRepository,
                              OrdemServicoRepository ordemServicoRepository,
-                             ClienteRepository clienteRepository) {
+                             ClienteRepository clienteRepository,
+                             ClienteSegmentacaoService segmentacaoService) {
         this.negociacaoRepository = negociacaoRepository;
         this.ordemServicoRepository = ordemServicoRepository;
         this.clienteRepository = clienteRepository;
+        this.segmentacaoService = segmentacaoService;
     }
 
     public static final Map<String, List<String>> CAMPOS_POR_FONTE = Map.of(
             "NEGOCIACOES", List.of("estagio"),
             "ORDENS_SERVICO", List.of("responsavel", "regraNegociacao", "status"),
-            "CLIENTES", List.of("tag")
+            "CLIENTES", List.of("tag", "segmento")
     );
 
     public static final Map<String, List<String>> METRICAS_POR_FONTE = Map.of(
             "NEGOCIACOES", List.of("contagem", "somaValor"),
             "ORDENS_SERVICO", List.of("contagem", "somaTotal", "somaProduto", "somaServico"),
-            "CLIENTES", List.of("contagem")
+            "CLIENTES", List.of("contagem", "somaValorGasto")
     );
 
     public List<Linha> gerar(String fonte, String agruparPor, String metrica) {
         return switch (fonte) {
             case "NEGOCIACOES" -> gerarNegociacoes(agruparPor, metrica);
             case "ORDENS_SERVICO" -> gerarOrdensServico(agruparPor, metrica);
-            case "CLIENTES" -> gerarClientes(agruparPor);
+            case "CLIENTES" -> gerarClientes(agruparPor, metrica);
             default -> throw new IllegalArgumentException("Fonte desconhecida: " + fonte);
         };
     }
@@ -85,13 +88,25 @@ public class RelatorioService {
         return agregar(dados, chave, valor);
     }
 
-    private List<Linha> gerarClientes(String agruparPor) {
+    private List<Linha> gerarClientes(String agruparPor, String metrica) {
         List<Cliente> dados = clienteRepository.findAll();
+        Map<Long, ClienteSegmentacaoService.Metricas> metricasPorCliente = segmentacaoService.calcularParaTodos();
+
         Function<Cliente, String> chave = switch (agruparPor) {
             case "tag" -> c -> valorOuIndefinido(c.getTag());
+            case "segmento" -> c -> metricasPorCliente.getOrDefault(c.getId(),
+                    new ClienteSegmentacaoService.Metricas(com.cartec.sistema.model.SegmentoCliente.SEM_HISTORICO,
+                            0, BigDecimal.ZERO, BigDecimal.ZERO, null)).segmento().getRotulo();
             default -> throw new IllegalArgumentException("Campo invalido para clientes: " + agruparPor);
         };
-        return agregar(dados, chave, null);
+
+        Function<Cliente, BigDecimal> valor = "somaValorGasto".equals(metrica)
+                ? c -> metricasPorCliente.getOrDefault(c.getId(),
+                        new ClienteSegmentacaoService.Metricas(com.cartec.sistema.model.SegmentoCliente.SEM_HISTORICO,
+                                0, BigDecimal.ZERO, BigDecimal.ZERO, null)).valorTotalGasto()
+                : null;
+
+        return agregar(dados, chave, valor);
     }
 
     private <T> List<Linha> agregar(List<T> dados, Function<T, String> chave, Function<T, BigDecimal> valorNumerico) {

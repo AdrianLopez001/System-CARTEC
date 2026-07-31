@@ -16,4 +16,6 @@ public interface OrdemServicoRepository extends JpaRepository<OrdemServico, Long
     List<OrdemServico> findAllByOrderByDataFaturamentoDesc();
 
     List<OrdemServico> findByClienteCadastroId(Long clienteId);
+
+    List<OrdemServico> findByClienteCadastroIsNotNull();
 }

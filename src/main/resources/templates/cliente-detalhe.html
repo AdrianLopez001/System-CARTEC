@@ -42,6 +42,21 @@
 
         <div style="display:flex; flex-direction:column; gap:20px;">
             <section class="card">
+                <h2>Métricas</h2>
+                <p>
+                    <span class="badge" th:classappend="'seg-' + ${#strings.toLowerCase(#strings.replace(metricas.segmento.name(),'_','-'))}"
+                          th:text="${metricas.segmento.rotulo}">Segmento</span>
+                </p>
+                <p class="descricao" th:text="${metricas.segmento.descricao}">Descrição do segmento</p>
+                <p><strong>Total gasto:</strong> R$ <span th:text="${#numbers.formatDecimal(metricas.valorTotalGasto, 1, 'POINT', 2, 'COMMA')}">0,00</span></p>
+                <p><strong>Visitas:</strong> <span th:text="${metricas.totalVisitas}">0</span></p>
+                <p><strong>Ticket médio:</strong> R$ <span th:text="${#numbers.formatDecimal(metricas.ticketMedio, 1, 'POINT', 2, 'COMMA')}">0,00</span></p>
+                <p><strong>Última visita:</strong>
+                    <span th:text="${metricas.ultimaVisita != null ? #temporals.format(metricas.ultimaVisita, 'dd/MM/yyyy') : 'sem OS vinculada'}">-</span>
+                </p>
+            </section>
+
+            <section class="card">
                 <h2>Dados</h2>
                 <p><strong>Email:</strong> <span th:text="${cliente.email} ?: '-'">-</span></p>
                 <p><strong>Empresa:</strong> <span th:text="${cliente.empresa != null ? cliente.empresa.nome : '-'}">-</span></p>

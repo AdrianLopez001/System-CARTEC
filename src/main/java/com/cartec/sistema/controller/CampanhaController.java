@@ -1,5 +1,6 @@
 package com.cartec.sistema.controller;
 
+import com.cartec.sistema.model.SegmentoCliente;
 import com.cartec.sistema.repository.CampanhaRepository;
 import com.cartec.sistema.repository.ClienteRepository;
 import com.cartec.sistema.service.CampanhaService;
@@ -17,8 +18,9 @@ import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Tela de CRM/campanhas: escolhe uma tag de cliente, escreve a mensagem
- * (com {nome} opcional) e baixa o xlsx de disparo com os links wa.me prontos.
+ * Tela de CRM/campanhas: escolhe uma tag OU um segmento de recencia de
+ * cliente, escreve a mensagem (com {nome} opcional) e baixa o xlsx de
+ * disparo com os links wa.me prontos.
  */
 @Controller
 public class CampanhaController {
@@ -38,6 +40,7 @@ public class CampanhaController {
     @GetMapping("/campanhas")
     public String tela(Model model) {
         model.addAttribute("tags", clienteRepository.listarTagsDistintas());
+        model.addAttribute("segmentos", SegmentoCliente.values());
         model.addAttribute("historico", campanhaRepository.findAllByOrderByDataCriacaoDesc());
         model.addAttribute("totalClientes", clienteRepository.count());
         return "campanhas";
@@ -45,10 +48,19 @@ public class CampanhaController {
 
     @PostMapping("/campanhas/exportar")
     public ResponseEntity<byte[]> exportar(@RequestParam(required = false) String tag,
+                                            @RequestParam(required = false) String segmento,
                                             @RequestParam String mensagem) throws IOException {
-        byte[] arquivo = campanhaService.gerarXlsxDisparo(tag, mensagem);
+        SegmentoCliente segmentoAlvo = (segmento == null || segmento.isBlank()) ? null : SegmentoCliente.valueOf(segmento);
+        byte[] arquivo = campanhaService.gerarXlsxDisparo(tag, segmentoAlvo, mensagem);
 
-        String sufixo = (tag == null || tag.isBlank()) ? "todos" : tag.replaceAll("\\s+", "-").toLowerCase();
+        String sufixo;
+        if (segmentoAlvo != null) {
+            sufixo = "segmento-" + segmentoAlvo.name().toLowerCase().replace('_', '-');
+        } else if (tag != null && !tag.isBlank()) {
+            sufixo = tag.replaceAll("\\s+", "-").toLowerCase();
+        } else {
+            sufixo = "todos";
+        }
         String nomeArquivo = "disparo-" + sufixo + "-"
                 + DateTimeFormatter.ofPattern("yyyyMMdd-HHmm").format(java.time.LocalDateTime.now()) + ".xlsx";
 

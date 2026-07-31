@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Cartec — Reengajamento</title>
+    <style th:replace="~{fragments/estilos :: base}"></style>
+</head>
+<body>
+<header th:replace="~{fragments/nav :: topbar}"></header>
+<div class="page-header">
+    <div>
+        <h1>Reengajamento</h1>
+        <p>Clientes em risco ou inativos, priorizados por quanto já gastaram com a gente</p>
+    </div>
+</div>
+<main>
+    <section class="tiles">
+        <div class="tile">
+            <div class="label">Ativos</div>
+            <div class="value positiva" th:text="${contagemPorSegmento.get(T(com.cartec.sistema.model.SegmentoCliente).ATIVO)}">0</div>
+        </div>
+        <div class="tile">
+            <div class="label">Em risco</div>
+            <div class="value" th:text="${contagemPorSegmento.get(T(com.cartec.sistema.model.SegmentoCliente).EM_RISCO)}">0</div>
+        </div>
+        <div class="tile">
+            <div class="label">Inativos</div>
+            <div class="value" th:text="${contagemPorSegmento.get(T(com.cartec.sistema.model.SegmentoCliente).INATIVO)}">0</div>
+        </div>
+        <div class="tile">
+            <div class="label">R$ em risco (em risco + inativos)</div>
+            <div class="value" th:text="${'R$ ' + #numbers.formatDecimal(valorEmRisco, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Priorizados por valor gasto</h2>
+        <p class="descricao">
+            Ordem de contato sugerida: cliente que já gastou mais tem prioridade — retorno de cliente
+            gasta em média 33% a mais por visita que cliente novo, então vale mais a pena resgatar quem
+            já é valioso antes de investir em captação nova.
+        </p>
+        <div class="tabela-scroll">
+            <table th:unless="${linhas.isEmpty()}">
+                <thead>
+                <tr>
+                    <th>Cliente</th>
+                    <th>Telefone</th>
+                    <th>Segmento</th>
+                    <th>Última visita</th>
+                    <th>Total gasto</th>
+                    <th>Visitas</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="l : ${linhas}">
+                    <td><a th:href="@{'/clientes/' + ${l.cliente.id}}" th:text="${l.cliente.nome}">Nome</a></td>
+                    <td th:text="${l.cliente.telefone}">-</td>
+                    <td>
+                        <span class="badge" th:classappend="'seg-' + ${#strings.toLowerCase(#strings.replace(l.metricas.segmento.name(),'_','-'))}"
+                              th:text="${l.metricas.segmento.rotulo}">Segmento</span>
+                    </td>
+                    <td th:text="${l.metricas.ultimaVisita != null ? #temporals.format(l.metricas.ultimaVisita, 'dd/MM/yyyy') : '-'}">-</td>
+                    <td class="numero" th:text="'R$ ' + ${#numbers.formatDecimal(l.metricas.valorTotalGasto, 1, 'POINT', 2, 'COMMA')}">-</td>
+                    <td class="numero" th:text="${l.metricas.totalVisitas}">0</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="vazio" th:if="${linhas.isEmpty()}">Nenhum cliente em risco ou inativo no momento — base saudável.</p>
+    </section>
+
+    <section class="card">
+        <h2>Gerar campanha de reengajamento</h2>
+        <p class="descricao">Vai direto pra tela de campanhas com o segmento já selecionado.</p>
+        <a class="botao" href="/campanhas?segmento=EM_RISCO">Campanha — Em risco →</a>
+        &nbsp;
+        <a class="botao secundario" href="/campanhas?segmento=INATIVO">Campanha — Inativos →</a>
+    </section>
+</main>
+<script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
+</body>
+</html>

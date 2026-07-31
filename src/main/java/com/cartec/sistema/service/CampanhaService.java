@@ -2,6 +2,7 @@ package com.cartec.sistema.service;
 
 import com.cartec.sistema.model.Campanha;
 import com.cartec.sistema.model.Cliente;
+import com.cartec.sistema.model.SegmentoCliente;
 import com.cartec.sistema.repository.CampanhaRepository;
 import com.cartec.sistema.repository.ClienteRepository;
 import org.apache.poi.ss.usermodel.Row;
@@ -14,12 +15,14 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Modulo de CRM/campanhas (ver CLAUDE.md, objetivo 2): gera o xlsx de disparo
- * para um grupo de clientes filtrado por tag, com o link wa.me ja montado com
- * a mensagem (suporta {nome} como variavel) e uma coluna "Concluido" vazia
- * para controle manual de quem ja foi contatado.
+ * para um grupo de clientes filtrado por tag OU por segmento de recencia
+ * (ver ClienteSegmentacaoService - reengajamento de quem esta em risco/
+ * inativo), com o link wa.me ja montado com a mensagem (suporta {nome} como
+ * variavel) e uma coluna "Concluido" vazia para controle manual.
  */
 @Service
 public class CampanhaService {
@@ -28,16 +31,18 @@ public class CampanhaService {
 
     private final ClienteRepository clienteRepository;
     private final CampanhaRepository campanhaRepository;
+    private final ClienteSegmentacaoService segmentacaoService;
 
-    public CampanhaService(ClienteRepository clienteRepository, CampanhaRepository campanhaRepository) {
+    public CampanhaService(ClienteRepository clienteRepository,
+                            CampanhaRepository campanhaRepository,
+                            ClienteSegmentacaoService segmentacaoService) {
         this.clienteRepository = clienteRepository;
         this.campanhaRepository = campanhaRepository;
+        this.segmentacaoService = segmentacaoService;
     }
 
-    public byte[] gerarXlsxDisparo(String tag, String mensagemTemplate) throws IOException {
-        List<Cliente> clientes = (tag == null || tag.isBlank())
-                ? clienteRepository.findAll()
-                : clienteRepository.findByTagIgnoreCaseOrderByNomeAsc(tag);
+    public byte[] gerarXlsxDisparo(String tag, SegmentoCliente segmento, String mensagemTemplate) throws IOException {
+        List<Cliente> clientes = selecionarClientes(tag, segmento);
 
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Disparo");
@@ -67,7 +72,8 @@ public class CampanhaService {
             }
 
             Campanha campanha = new Campanha();
-            campanha.setTagAlvo(tag);
+            campanha.setTagAlvo(segmento == null ? tag : null);
+            campanha.setSegmentoAlvo(segmento);
             campanha.setMensagemTemplate(mensagemTemplate);
             campanha.setQuantidadeClientes(clientes.size());
             campanhaRepository.save(campanha);
@@ -76,6 +82,22 @@ public class CampanhaService {
             workbook.write(out);
             return out.toByteArray();
         }
+    }
+
+    private List<Cliente> selecionarClientes(String tag, SegmentoCliente segmento) {
+        if (segmento != null) {
+            Map<Long, ClienteSegmentacaoService.Metricas> metricas = segmentacaoService.calcularParaTodos();
+            return clienteRepository.findAll().stream()
+                    .filter(c -> {
+                        ClienteSegmentacaoService.Metricas m = metricas.get(c.getId());
+                        SegmentoCliente segmentoCliente = m != null ? m.segmento() : SegmentoCliente.SEM_HISTORICO;
+                        return segmentoCliente == segmento;
+                    })
+                    .toList();
+        }
+        return (tag == null || tag.isBlank())
+                ? clienteRepository.findAll()
+                : clienteRepository.findByTagIgnoreCaseOrderByNomeAsc(tag);
     }
 
     private String montarMensagem(String template, Cliente cliente) {

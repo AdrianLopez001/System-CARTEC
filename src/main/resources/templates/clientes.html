@@ -12,6 +12,7 @@
         <h1>Clientes</h1>
         <p th:text="${clientes.size()} + ' cadastrados'">0 cadastrados</p>
     </div>
+    <a class="botao" href="/reengajamento">Reengajamento →</a>
 </div>
 <main>
     <section class="card">
@@ -23,14 +24,25 @@
                     <th>Telefone</th>
                     <th>Tag</th>
                     <th>Empresa</th>
+                    <th>Segmento</th>
+                    <th>Última visita</th>
+                    <th>Total gasto</th>
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="c : ${clientes}">
+                <tr th:each="c : ${clientes}" th:with="m=${metricas.get(c.id)}">
                     <td><a th:href="@{'/clientes/' + ${c.id}}" th:text="${c.nome}">Nome</a></td>
                     <td th:text="${c.telefone}">-</td>
                     <td th:text="${c.tag}">-</td>
                     <td th:text="${c.empresa != null ? c.empresa.nome : '-'}">-</td>
+                    <td>
+                        <span th:if="${m != null}" class="badge"
+                              th:classappend="'seg-' + ${#strings.toLowerCase(#strings.replace(m.segmento.name(),'_','-'))}"
+                              th:text="${m.segmento.rotulo}">Segmento</span>
+                        <span th:if="${m == null}" class="badge seg-sem-historico">Sem histórico</span>
+                    </td>
+                    <td th:text="${m != null and m.ultimaVisita != null ? #temporals.format(m.ultimaVisita, 'dd/MM/yyyy') : '-'}">-</td>
+                    <td class="numero" th:text="${m != null ? 'R$ ' + #numbers.formatDecimal(m.valorTotalGasto, 1, 'POINT', 2, 'COMMA') : '-'}">-</td>
                 </tr>
                 </tbody>
             </table>
