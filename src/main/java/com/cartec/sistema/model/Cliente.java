@@ -39,6 +39,9 @@ public class Cliente {
     @JoinColumn(name = "empresa_id")
     private Empresa empresa;
 
+    @Column(name = "demo", nullable = false, columnDefinition = "boolean default false")
+    private boolean demo = false;
+
     @PrePersist
     public void aoCriar() {
         if (dataCadastro == null) {
@@ -108,5 +111,13 @@ public class Cliente {
 
     public void setEmpresa(Empresa empresa) {
         this.empresa = empresa;
+    }
+
+    public boolean isDemo() {
+        return demo;
+    }
+
+    public void setDemo(boolean demo) {
+        this.demo = demo;
     }
 }

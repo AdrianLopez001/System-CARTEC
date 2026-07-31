@@ -8,4 +8,6 @@ import java.util.List;
 public interface CampanhaRepository extends JpaRepository<Campanha, Long> {
 
     List<Campanha> findAllByOrderByDataCriacaoDesc();
+
+    List<Campanha> findByDemoTrue();
 }

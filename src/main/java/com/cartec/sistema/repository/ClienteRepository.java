@@ -15,6 +15,8 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
 
     java.util.List<Cliente> findByEmpresaId(Long empresaId);
 
+    java.util.List<Cliente> findByDemoTrue();
+
     List<Cliente> findByTagIgnoreCaseOrderByNomeAsc(String tag);
 
     @Query("select distinct c.tag from Cliente c where c.tag is not null and c.tag <> '' order by c.tag")

@@ -12,4 +12,6 @@ public interface TarefaRepository extends JpaRepository<Tarefa, Long> {
     List<Tarefa> findByClienteIdOrderByDataVencimentoAsc(Long clienteId);
 
     List<Tarefa> findByConcluidaFalseOrderByDataVencimentoAsc();
+
+    List<Tarefa> findByDemoTrue();
 }

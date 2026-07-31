@@ -65,6 +65,9 @@ public class OrdemServico {
     @JoinColumn(name = "cliente_cadastro_id")
     private Cliente clienteCadastro;
 
+    @Column(name = "demo", nullable = false, columnDefinition = "boolean default false")
+    private boolean demo = false;
+
     @OneToMany(mappedBy = "ordemServico", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ItemServico> itens = new ArrayList<>();
 
@@ -202,5 +205,13 @@ public class OrdemServico {
 
     public void setClienteCadastro(Cliente clienteCadastro) {
         this.clienteCadastro = clienteCadastro;
+    }
+
+    public boolean isDemo() {
+        return demo;
+    }
+
+    public void setDemo(boolean demo) {
+        this.demo = demo;
     }
 }

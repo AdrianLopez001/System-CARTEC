@@ -14,4 +14,6 @@ public interface MetricaSemanalRepository extends JpaRepository<MetricaSemanal, 
     List<MetricaSemanal> findAllByOrderBySemanaInicioAsc();
 
     List<MetricaSemanal> findTop4ByOrderBySemanaInicioDesc();
+
+    List<MetricaSemanal> findByDemoTrue();
 }

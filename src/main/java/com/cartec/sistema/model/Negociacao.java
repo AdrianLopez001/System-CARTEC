@@ -45,6 +45,9 @@ public class Negociacao {
     @Column(name = "data_criacao")
     private LocalDateTime dataCriacao;
 
+    @Column(name = "demo", nullable = false, columnDefinition = "boolean default false")
+    private boolean demo = false;
+
     @PrePersist
     public void aoCriar() {
         if (dataCriacao == null) {
@@ -122,5 +125,13 @@ public class Negociacao {
 
     public void setDataCriacao(LocalDateTime dataCriacao) {
         this.dataCriacao = dataCriacao;
+    }
+
+    public boolean isDemo() {
+        return demo;
+    }
+
+    public void setDemo(boolean demo) {
+        this.demo = demo;
     }
 }

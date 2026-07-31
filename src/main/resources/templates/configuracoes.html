@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Cartec — Configurações</title>
+    <style th:replace="~{fragments/estilos :: base}"></style>
+    <style>
+        .card.perigo { border-color: var(--bad); }
+        .card.perigo h2 { color: var(--bad); }
+        button.perigo { background: var(--bad); }
+        button.perigo:hover { background: color-mix(in srgb, var(--bad) 85%, black); }
+    </style>
+</head>
+<body>
+<header th:replace="~{fragments/nav :: topbar}"></header>
+<div class="page-header">
+    <div>
+        <h1>Configurações</h1>
+        <p>Ações administrativas do sistema</p>
+    </div>
+</div>
+<main>
+    <section class="card">
+        <h2>Modo de demonstração</h2>
+        <p class="descricao">
+            Preenche todas as áreas do sistema (dashboard, clientes, empresas, negociações, tarefas,
+            ordens de serviço, campanhas) com dados de exemplo, só pra mostrar visualmente como cada
+            tela fica preenchida. Os dados de demonstração ficam marcados à parte — desativar remove
+            exatamente o que foi adicionado, sem tocar nos seus dados reais.
+        </p>
+        <p style="margin-bottom:16px;">
+            Status atual:
+            <span class="badge" th:classappend="${modoDemonstracaoAtivo} ? 'concluida' : ''"
+                  th:text="${modoDemonstracaoAtivo} ? 'Ativado' : 'Desativado'">Status</span>
+        </p>
+        <button id="btnAtivarDemo" th:if="${!modoDemonstracaoAtivo}">Ativar modo de demonstração</button>
+        <button id="btnDesativarDemo" class="secundario" th:if="${modoDemonstracaoAtivo}">Desativar modo de demonstração</button>
+        <div id="resultadoDemo" class="resultado"></div>
+    </section>
+
+    <section class="card perigo">
+        <h2>Zona de risco</h2>
+        <p class="descricao">
+            Apaga <strong>todos os dados</strong> do sistema — clientes, empresas, ordens de serviço,
+            negociações, tarefas, notas, campanhas, métricas e metas. Não tem como desfazer. Use antes
+            de começar a operação de verdade, ou se quiser resetar completamente depois de testar.
+        </p>
+        <label for="confirmacaoLimpar">Digite <code>LIMPAR TUDO</code> pra confirmar</label>
+        <input type="text" id="confirmacaoLimpar" placeholder="LIMPAR TUDO">
+        <button id="btnLimparDados" class="perigo" disabled>Apagar todos os dados</button>
+        <div id="resultadoLimpar" class="resultado"></div>
+    </section>
+</main>
+<script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
+<script>
+    const campoConfirmacao = document.getElementById('confirmacaoLimpar');
+    const btnLimpar = document.getElementById('btnLimparDados');
+    campoConfirmacao.addEventListener('input', () => {
+        btnLimpar.disabled = campoConfirmacao.value.trim() !== 'LIMPAR TUDO';
+    });
+
+    btnLimpar.addEventListener('click', async () => {
+        if (!confirm('Tem certeza? Isso apaga TODOS os dados do sistema e não pode ser desfeito.')) {
+            return;
+        }
+        const caixa = document.getElementById('resultadoLimpar');
+        btnLimpar.disabled = true;
+        const resposta = await fetch('/api/configuracoes/limpar-dados', { method: 'POST' });
+        if (resposta.ok) {
+            caixa.className = 'resultado ok';
+            caixa.textContent = 'Dados apagados. Recarregando...';
+            setTimeout(() => window.location.href = '/', 1200);
+        } else {
+            caixa.className = 'resultado erro';
+            caixa.textContent = 'Erro ao apagar (HTTP ' + resposta.status + ')';
+            btnLimpar.disabled = false;
+        }
+    });
+
+    const btnAtivarDemo = document.getElementById('btnAtivarDemo');
+    if (btnAtivarDemo) {
+        btnAtivarDemo.addEventListener('click', async () => {
+            const caixa = document.getElementById('resultadoDemo');
+            btnAtivarDemo.disabled = true;
+            const resposta = await fetch('/api/configuracoes/modo-demo/ativar', { method: 'POST' });
+            if (resposta.ok) {
+                caixa.className = 'resultado ok';
+                caixa.textContent = 'Dados de demonstração adicionados. Recarregando...';
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                caixa.className = 'resultado erro';
+                caixa.textContent = 'Erro ao ativar (HTTP ' + resposta.status + ')';
+                btnAtivarDemo.disabled = false;
+            }
+        });
+    }
+
+    const btnDesativarDemo = document.getElementById('btnDesativarDemo');
+    if (btnDesativarDemo) {
+        btnDesativarDemo.addEventListener('click', async () => {
+            const caixa = document.getElementById('resultadoDemo');
+            btnDesativarDemo.disabled = true;
+            const resposta = await fetch('/api/configuracoes/modo-demo/desativar', { method: 'POST' });
+            if (resposta.ok) {
+                caixa.className = 'resultado ok';
+                caixa.textContent = 'Dados de demonstração removidos. Recarregando...';
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                caixa.className = 'resultado erro';
+                caixa.textContent = 'Erro ao desativar (HTTP ' + resposta.status + ')';
+                btnDesativarDemo.disabled = false;
+            }
+        });
+    }
+</script>
+</body>
+</html>

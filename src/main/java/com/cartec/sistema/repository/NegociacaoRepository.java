@@ -13,4 +13,6 @@ public interface NegociacaoRepository extends JpaRepository<Negociacao, Long> {
     List<Negociacao> findByClienteIdOrderByDataCriacaoDesc(Long clienteId);
 
     List<Negociacao> findByEstagio(EstagioNegociacao estagio);
+
+    List<Negociacao> findByDemoTrue();
 }

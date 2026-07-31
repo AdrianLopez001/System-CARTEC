@@ -25,6 +25,17 @@ public class Meta {
     @Column(name = "valor_meta", precision = 12, scale = 2, nullable = false)
     private BigDecimal valorMeta;
 
+    @Column(name = "demo", nullable = false, columnDefinition = "boolean default false")
+    private boolean demo = false;
+
+    public boolean isDemo() {
+        return demo;
+    }
+
+    public void setDemo(boolean demo) {
+        this.demo = demo;
+    }
+
     public Long getId() {
         return id;
     }

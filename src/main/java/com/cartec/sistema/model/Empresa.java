@@ -44,6 +44,9 @@ public class Empresa {
     @JsonIgnore
     private List<Cliente> contatos = new ArrayList<>();
 
+    @Column(name = "demo", nullable = false, columnDefinition = "boolean default false")
+    private boolean demo = false;
+
     @PrePersist
     public void aoCriar() {
         if (dataCadastro == null) {
@@ -121,5 +124,13 @@ public class Empresa {
 
     public void setContatos(List<Cliente> contatos) {
         this.contatos = contatos;
+    }
+
+    public boolean isDemo() {
+        return demo;
+    }
+
+    public void setDemo(boolean demo) {
+        this.demo = demo;
     }
 }

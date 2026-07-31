@@ -5,11 +5,15 @@ import com.cartec.sistema.model.MetricaSemanal;
 import com.cartec.sistema.repository.MetaRepository;
 import com.cartec.sistema.repository.MetricaSemanalRepository;
 import com.cartec.sistema.service.MetricaService;
+import com.cartec.sistema.service.ProjecaoMensalService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import java.math.BigDecimal;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -26,13 +30,16 @@ public class DashboardController {
     private final MetricaSemanalRepository metricaSemanalRepository;
     private final MetaRepository metaRepository;
     private final MetricaService metricaService;
+    private final ProjecaoMensalService projecaoMensalService;
 
     public DashboardController(MetricaSemanalRepository metricaSemanalRepository,
                                 MetaRepository metaRepository,
-                                MetricaService metricaService) {
+                                MetricaService metricaService,
+                                ProjecaoMensalService projecaoMensalService) {
         this.metricaSemanalRepository = metricaSemanalRepository;
         this.metaRepository = metaRepository;
         this.metricaService = metricaService;
+        this.projecaoMensalService = projecaoMensalService;
     }
 
     @GetMapping("/")
@@ -63,6 +70,20 @@ public class DashboardController {
         model.addAttribute("ticketMedioAtual", ticketMedioAtual);
         model.addAttribute("variacaoPercentualExibicao", variacaoPercentualExibicao);
         model.addAttribute("percentualMeta", percentualMeta);
+
+        ProjecaoMensalService.Projecao projecao = projecaoMensalService.calcular(YearMonth.now());
+        model.addAttribute("projecao", projecao);
+        model.addAttribute("mesReferencia", YearMonth.now().atDay(1));
+
+        List<String> diasGrafico = new ArrayList<>();
+        List<BigDecimal> valoresGrafico = new ArrayList<>();
+        DateTimeFormatter formatoDia = DateTimeFormatter.ofPattern("dd/MM");
+        projecao.acumuladoPorDia().forEach((data, valor) -> {
+            diasGrafico.add(data.format(formatoDia));
+            valoresGrafico.add(valor);
+        });
+        model.addAttribute("diasGrafico", diasGrafico);
+        model.addAttribute("valoresGrafico", valoresGrafico);
 
         return "index";
     }

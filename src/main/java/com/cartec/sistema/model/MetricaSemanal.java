@@ -50,6 +50,17 @@ public class MetricaSemanal {
     @Column(name = "data_alteracao")
     private LocalDateTime dataAlteracao;
 
+    @Column(name = "demo", nullable = false, columnDefinition = "boolean default false")
+    private boolean demo = false;
+
+    public boolean isDemo() {
+        return demo;
+    }
+
+    public void setDemo(boolean demo) {
+        this.demo = demo;
+    }
+
     public Long getId() {
         return id;
     }
