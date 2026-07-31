@@ -56,6 +56,19 @@
         }
         header h1 { font-size: 1.25rem; margin: 0 0 4px; }
         header p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
+        header {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        header nav a {
+            color: var(--series-1);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        header nav a:hover { text-decoration: underline; }
 
         main {
             padding: 16px clamp(16px, 4vw, 40px) 40px;
@@ -103,8 +116,11 @@
 </head>
 <body>
 <header>
-    <h1>Cartec — Service e Peças</h1>
-    <p>Visão da semana · ticket médio, variação e % da meta</p>
+    <div>
+        <h1>Cartec — Service e Peças</h1>
+        <p>Visão da semana · ticket médio, variação e % da meta</p>
+    </div>
+    <nav><a href="/campanhas">CRM e Campanhas →</a></nav>
 </header>
 <main>
     <section class="tiles">

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Cartec — CRM e Campanhas</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --surface-1: #fcfcfb;
+            --page: #f9f9f7;
+            --text-primary: #0b0b0b;
+            --text-secondary: #52514e;
+            --muted: #898781;
+            --grid: #e1e0d9;
+            --baseline: #c3c2b7;
+            --series-1: #2a78d6;
+            --good: #006300;
+            --bad: #a30000;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root:where(:not([data-theme="light"])) {
+                color-scheme: dark;
+                --surface-1: #1a1a19;
+                --page: #0d0d0d;
+                --text-primary: #ffffff;
+                --text-secondary: #c3c2b7;
+                --muted: #898781;
+                --grid: #2c2c2a;
+                --baseline: #383835;
+                --series-1: #3987e5;
+                --good: #0ca30c;
+                --bad: #e5484d;
+            }
+        }
+        :root[data-theme="dark"] {
+            color-scheme: dark;
+            --surface-1: #1a1a19;
+            --page: #0d0d0d;
+            --text-primary: #ffffff;
+            --text-secondary: #c3c2b7;
+            --muted: #898781;
+            --grid: #2c2c2a;
+            --baseline: #383835;
+            --series-1: #3987e5;
+            --good: #0ca30c;
+            --bad: #e5484d;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            background: var(--page);
+            color: var(--text-primary);
+        }
+        header {
+            padding: 24px clamp(16px, 4vw, 40px) 8px;
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        header h1 { font-size: 1.25rem; margin: 0 0 4px; }
+        header p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
+        nav a {
+            color: var(--series-1);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        nav a:hover { text-decoration: underline; }
+
+        main {
+            padding: 16px clamp(16px, 4vw, 40px) 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 900px;
+        }
+
+        .card {
+            background: var(--surface-1);
+            border: 1px solid var(--grid);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .card h2 { font-size: 1rem; margin: 0 0 4px; }
+        .card .descricao { color: var(--text-secondary); font-size: 0.85rem; margin: 0 0 16px; }
+
+        label { display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px; }
+        input[type=file], select, textarea {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--grid);
+            border-radius: 6px;
+            background: var(--page);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9rem;
+            margin-bottom: 14px;
+        }
+        textarea { min-height: 90px; resize: vertical; }
+
+        button {
+            background: var(--series-1);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 9px 18px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        button:hover { opacity: 0.9; }
+
+        .resultado {
+            margin-top: 14px;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            display: none;
+        }
+        .resultado.ok { background: color-mix(in srgb, var(--good) 12%, transparent); color: var(--good); display: block; }
+        .resultado.erro { background: color-mix(in srgb, var(--bad) 12%, transparent); color: var(--bad); display: block; }
+        .resultado ul { margin: 6px 0 0; padding-left: 18px; }
+
+        table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+        th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--grid); }
+        th { color: var(--text-secondary); font-weight: 500; }
+        .vazio { color: var(--muted); font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+<header>
+    <div>
+        <h1>Cartec — CRM e Campanhas</h1>
+        <p th:text="${totalClientes} + ' cliente(s) cadastrados'">0 clientes cadastrados</p>
+    </div>
+    <nav><a href="/">← Voltar pro dashboard</a></nav>
+</header>
+<main>
+    <section class="card">
+        <h2>Importar clientes (xlsx)</h2>
+        <p class="descricao">
+            Cabeçalho na primeira linha com as colunas: <code>nome</code>, <code>telefone</code>,
+            <code>email</code>, <code>tag</code>, <code>observacoes</code> (email/tag/observacoes
+            opcionais). Reenviar um telefone já cadastrado atualiza o cliente existente.
+        </p>
+        <form id="formUpload">
+            <label for="arquivoClientes">Arquivo .xlsx</label>
+            <input type="file" id="arquivoClientes" name="arquivo" accept=".xlsx,.xls" required>
+            <button type="submit">Importar</button>
+        </form>
+        <div id="resultadoUpload" class="resultado"></div>
+    </section>
+
+    <section class="card">
+        <h2>Gerar disparo</h2>
+        <p class="descricao">
+            Escolhe a tag do grupo, escreve a mensagem (use <code>{nome}</code> pra puxar o primeiro
+            nome de cada cliente) e baixa o xlsx com o link wa.me já pronto por linha.
+        </p>
+        <form action="/campanhas/exportar" method="post">
+            <label for="tag">Grupo (tag)</label>
+            <select id="tag" name="tag">
+                <option value="">Todos os clientes</option>
+                <option th:each="t : ${tags}" th:value="${t}" th:text="${t}"></option>
+            </select>
+
+            <label for="mensagem">Mensagem</label>
+            <textarea id="mensagem" name="mensagem" required placeholder="Oi {nome}, tudo bem? ..."></textarea>
+
+            <button type="submit">Gerar xlsx</button>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>Histórico de disparos</h2>
+        <table th:unless="${historico.isEmpty()}">
+            <thead>
+            <tr>
+                <th>Data</th>
+                <th>Grupo</th>
+                <th>Mensagem</th>
+                <th>Clientes</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="c : ${historico}">
+                <td th:text="${#temporals.format(c.dataCriacao, 'dd/MM/yyyy HH:mm')}">01/01/2026 00:00</td>
+                <td th:text="${c.tagAlvo != null and !c.tagAlvo.isEmpty()} ? ${c.tagAlvo} : 'Todos'">Todos</td>
+                <td th:text="${c.mensagemTemplate}">Mensagem</td>
+                <td th:text="${c.quantidadeClientes}">0</td>
+            </tr>
+            </tbody>
+        </table>
+        <p class="vazio" th:if="${historico.isEmpty()}">Nenhum disparo gerado ainda.</p>
+    </section>
+</main>
+
+<script>
+    document.getElementById('formUpload').addEventListener('submit', async (evento) => {
+        evento.preventDefault();
+        const input = document.getElementById('arquivoClientes');
+        const caixaResultado = document.getElementById('resultadoUpload');
+        if (!input.files.length) return;
+
+        const dados = new FormData();
+        dados.append('arquivo', input.files[0]);
+
+        caixaResultado.className = 'resultado';
+        caixaResultado.textContent = '';
+
+        try {
+            const resposta = await fetch('/api/clientes/upload', { method: 'POST', body: dados });
+            if (!resposta.ok) {
+                throw new Error('Falha no upload (HTTP ' + resposta.status + ')');
+            }
+            const resultado = await resposta.json();
+            caixaResultado.className = 'resultado ok';
+            let html = `Lidas: ${resultado.totalLinhasLidas} · Gravadas: ${resultado.totalGravado}`;
+            if (resultado.divergencias && resultado.divergencias.length) {
+                html += '<ul>' + resultado.divergencias.map(d => `<li>${d}</li>`).join('') + '</ul>';
+            }
+            caixaResultado.innerHTML = html;
+        } catch (erro) {
+            caixaResultado.className = 'resultado erro';
+            caixaResultado.textContent = erro.message;
+        }
+    });
+</script>
+</body>
+</html>
