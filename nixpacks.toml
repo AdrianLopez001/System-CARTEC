@@ -1,8 +1,0 @@
-[phases.setup]
-nixPkgs = ["jdk21", "maven"]
-
-[phases.build]
-cmds = ["./mvnw -B -DskipTests clean package"]
-
-[start]
-cmd = "java -jar target/cartec-sistema.jar"
