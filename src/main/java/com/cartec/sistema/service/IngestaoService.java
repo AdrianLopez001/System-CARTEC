@@ -2,8 +2,10 @@ package com.cartec.sistema.service;
 
 import com.cartec.sistema.dto.ResultadoImportacao;
 import com.cartec.sistema.model.OrdemServico;
+import com.cartec.sistema.model.VendaMensal;
 import com.cartec.sistema.repository.ClienteRepository;
 import com.cartec.sistema.repository.OrdemServicoRepository;
+import com.cartec.sistema.repository.VendaMensalRepository;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -32,10 +34,14 @@ public class IngestaoService {
 
     private final OrdemServicoRepository ordemServicoRepository;
     private final ClienteRepository clienteRepository;
+    private final VendaMensalRepository vendaMensalRepository;
 
-    public IngestaoService(OrdemServicoRepository ordemServicoRepository, ClienteRepository clienteRepository) {
+    public IngestaoService(OrdemServicoRepository ordemServicoRepository,
+                            ClienteRepository clienteRepository,
+                            VendaMensalRepository vendaMensalRepository) {
         this.ordemServicoRepository = ordemServicoRepository;
         this.clienteRepository = clienteRepository;
+        this.vendaMensalRepository = vendaMensalRepository;
     }
 
     public ResultadoImportacao importarConferenciaOsPdf(MultipartFile arquivo) throws IOException {
@@ -101,6 +107,37 @@ public class IngestaoService {
 
             return ResultadoImportacao.of(totalLinhas, 0);
         }
+    }
+
+    public ResultadoImportacao importarVendasPorMesPdf(MultipartFile arquivo) throws IOException {
+        String texto = extrairTextoPdf(arquivo);
+        VendasPorMesParser.Resultado resultado = VendasPorMesParser.parse(texto);
+
+        List<String> divergencias = new ArrayList<>(resultado.divergencias());
+        int totalGravado = 0;
+
+        for (VendasPorMesParser.VendaMensalImportada v : resultado.linhas()) {
+            VendaMensal vendaMensal = vendaMensalRepository.findByMes(v.mes).orElseGet(VendaMensal::new);
+            vendaMensal.setMes(v.mes);
+            vendaMensal.setFaturamento(v.faturamento);
+            vendaMensal.setPercentualDesconto(v.percentualDesconto);
+            vendaMensal.setValorDesconto(v.valorDesconto);
+            vendaMensal.setPercentualCusto(v.percentualCusto);
+            vendaMensal.setValorCusto(v.valorCusto);
+            vendaMensal.setPercentualLucroBruto(v.percentualLucroBruto);
+            vendaMensal.setValorLucroBruto(v.valorLucroBruto);
+            vendaMensal.setPercentualServico(v.percentualServico);
+            vendaMensal.setValorServico(v.valorServico);
+            vendaMensal.setPercentualProduto(v.percentualProduto);
+            vendaMensal.setValorProduto(v.valorProduto);
+            vendaMensal.setQtdOs(v.qtdOs);
+            vendaMensal.setTicketMedio(v.ticketMedio);
+            vendaMensalRepository.save(vendaMensal);
+            totalGravado++;
+        }
+
+        int totalLinhas = resultado.linhas().size() + resultado.divergencias().size();
+        return new ResultadoImportacao(totalLinhas, totalGravado, divergencias);
     }
 
     public ResultadoImportacao importarVendaPorDiaPdf(MultipartFile arquivo) throws IOException {

@@ -27,7 +27,7 @@ public final class ConferenciaOsParser {
     private static final Pattern PALAVRA_CLIENTE = Pattern.compile("\\bCLIENTE\\b");
     private static final Pattern PLACA = Pattern.compile("\\b([A-Z]{3}\\d[A-Z0-9]\\d{2})\\b");
     private static final Pattern CAMPOS_FINAIS = Pattern.compile(
-            "(.+?)\\s+(\\d{2}/\\d{2}/\\d{2})\\s+(Finalizada|Aberta)\\s+(\\d{2}/\\d{2}/\\d{2})\\s+"
+            "(.*?)\\s*(\\d{2}/\\d{2}/\\d{2})\\s+(Finalizada|Aberta)\\s+(\\d{2}/\\d{2}/\\d{2})\\s+"
                     + "(R\\$\\s?[\\d.]+,\\d{2}|-)\\s+(R\\$\\s?[\\d.]+,\\d{2}|-)\\s+(R\\$\\s?[\\d.]+,\\d{2})");
     private static final DateTimeFormatter FORMATO_DATA = DateTimeFormatter.ofPattern("dd/MM/yy");
 
