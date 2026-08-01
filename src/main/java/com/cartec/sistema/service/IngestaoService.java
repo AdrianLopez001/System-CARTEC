@@ -1,11 +1,15 @@
 package com.cartec.sistema.service;
 
 import com.cartec.sistema.dto.ResultadoImportacao;
+import com.cartec.sistema.model.Evento;
 import com.cartec.sistema.model.OrdemServico;
+import com.cartec.sistema.model.TipoEvento;
 import com.cartec.sistema.model.VendaMensal;
 import com.cartec.sistema.repository.ClienteRepository;
+import com.cartec.sistema.repository.EventoRepository;
 import com.cartec.sistema.repository.OrdemServicoRepository;
 import com.cartec.sistema.repository.VendaMensalRepository;
+import com.cartec.sistema.util.PhoneUtils;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
@@ -35,13 +39,16 @@ public class IngestaoService {
     private final OrdemServicoRepository ordemServicoRepository;
     private final ClienteRepository clienteRepository;
     private final VendaMensalRepository vendaMensalRepository;
+    private final EventoRepository eventoRepository;
 
     public IngestaoService(OrdemServicoRepository ordemServicoRepository,
                             ClienteRepository clienteRepository,
-                            VendaMensalRepository vendaMensalRepository) {
+                            VendaMensalRepository vendaMensalRepository,
+                            EventoRepository eventoRepository) {
         this.ordemServicoRepository = ordemServicoRepository;
         this.clienteRepository = clienteRepository;
         this.vendaMensalRepository = vendaMensalRepository;
+        this.eventoRepository = eventoRepository;
     }
 
     public ResultadoImportacao importarConferenciaOsPdf(MultipartFile arquivo) throws IOException {
@@ -137,6 +144,38 @@ public class IngestaoService {
         }
 
         int totalLinhas = resultado.linhas().size() + resultado.divergencias().size();
+        return new ResultadoImportacao(totalLinhas, totalGravado, divergencias);
+    }
+
+    public ResultadoImportacao importarAgendaPdf(MultipartFile arquivo) throws IOException {
+        String texto = extrairTextoPdf(arquivo);
+        AgendaParser.Resultado resultado = AgendaParser.parse(texto);
+
+        List<String> divergencias = new ArrayList<>(resultado.divergencias());
+        int totalGravado = 0;
+
+        for (AgendaParser.EventoImportado ev : resultado.eventos()) {
+            Evento evento = new Evento();
+            evento.setTitulo(ev.titulo);
+            evento.setData(ev.data);
+            evento.setHora(ev.hora);
+            evento.setTipo(TipoEvento.AGENDAMENTO);
+            evento.setPlaca(ev.placa);
+            evento.setResponsavel(ev.responsavel);
+            evento.setConcluido(ev.concluido);
+            evento.setReferenciaOs(ev.referenciaOs);
+
+            if (ev.telefone != null) {
+                String telefonePadronizado = PhoneUtils.padronizar(ev.telefone);
+                evento.setTelefone(telefonePadronizado);
+                clienteRepository.findByTelefone(telefonePadronizado).ifPresent(evento::setCliente);
+            }
+
+            eventoRepository.save(evento);
+            totalGravado++;
+        }
+
+        int totalLinhas = resultado.eventos().size() + resultado.divergencias().size();
         return new ResultadoImportacao(totalLinhas, totalGravado, divergencias);
     }
 

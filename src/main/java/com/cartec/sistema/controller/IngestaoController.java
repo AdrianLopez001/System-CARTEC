@@ -49,4 +49,9 @@ public class IngestaoController {
     public ResultadoImportacao importarVendasPorMesPdf(@RequestParam("arquivo") MultipartFile arquivo) throws IOException {
         return ingestaoService.importarVendasPorMesPdf(arquivo);
     }
+
+    @PostMapping("/agenda-pdf")
+    public ResultadoImportacao importarAgendaPdf(@RequestParam("arquivo") MultipartFile arquivo) throws IOException {
+        return ingestaoService.importarAgendaPdf(arquivo);
+    }
 }

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Cartec — Calendário</title>
+    <style th:replace="~{fragments/estilos :: base}"></style>
+</head>
+<body>
+<header th:replace="~{fragments/nav :: topbar}"></header>
+<div class="page-header">
+    <div>
+        <h1>Calendário</h1>
+        <p>Agendamentos, tarefas e campanhas do mês, tudo num só lugar</p>
+    </div>
+</div>
+<main>
+    <section class="card">
+        <h2>Importar Agenda</h2>
+        <p class="descricao">Envie o PDF "Agenda" exportado da Oficina Inteligente pra trazer os agendamentos do mês.</p>
+        <form id="formUpload">
+            <input type="file" id="arquivoAgenda" name="arquivo" accept=".pdf" required>
+            <button type="submit">Importar</button>
+        </form>
+        <div id="resultadoUpload" class="resultado"></div>
+    </section>
+
+    <section class="card">
+        <h2>Novo lembrete/evento</h2>
+        <form id="formEvento" style="display:grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 0 12px; align-items:end;">
+            <div>
+                <label for="tituloEvento">Título</label>
+                <input type="text" id="tituloEvento" required placeholder="Ex: ligar pro fornecedor">
+            </div>
+            <div>
+                <label for="dataEvento">Data</label>
+                <input type="date" id="dataEvento" required>
+            </div>
+            <div>
+                <label for="horaEvento">Hora (opcional)</label>
+                <input type="number" id="horaEvento" min="0" max="23" placeholder="14">
+            </div>
+            <div>
+                <label for="tipoEvento">Tipo</label>
+                <select id="tipoEvento">
+                    <option value="LEMBRETE">Lembrete</option>
+                    <option value="AGENDAMENTO">Agendamento</option>
+                </select>
+            </div>
+            <div>
+                <button type="submit">Adicionar</button>
+            </div>
+        </form>
+        <div id="resultadoEvento" class="resultado"></div>
+    </section>
+
+    <section class="card">
+        <div class="calendario-nav">
+            <a class="botao secundario" th:href="@{/calendario(mes=${mesAnterior})}">← Anterior</a>
+            <h2 th:text="${mesRotulo}">Mês</h2>
+            <a class="botao secundario" th:href="@{/calendario(mes=${mesProximo})}">Próximo →</a>
+        </div>
+        <div class="calendario-grid">
+            <div class="calendario-cabecalho">Dom</div>
+            <div class="calendario-cabecalho">Seg</div>
+            <div class="calendario-cabecalho">Ter</div>
+            <div class="calendario-cabecalho">Qua</div>
+            <div class="calendario-cabecalho">Qui</div>
+            <div class="calendario-cabecalho">Sex</div>
+            <div class="calendario-cabecalho">Sáb</div>
+
+            <div th:each="dia : ${celulas}"
+                 th:class="${dia == null} ? 'dia-celula vazia' : (${dia.equals(hoje)} ? 'dia-celula hoje' : 'dia-celula')">
+                <div th:if="${dia != null}" class="dia-numero">
+                    <span th:text="${dia.dayOfMonth}">1</span>
+                </div>
+                <div th:if="${dia != null}" th:each="item : ${dia != null ? itensPorDia.get(dia) : {}}"
+                     class="item-cal"
+                     th:classappend="${'tipo-' + #strings.toLowerCase(item.tipo.name())} + (${item.concluido} ? ' concluido' : '')"
+                     th:title="${(item.hora != null ? item.hora + 'h ' : '') + item.titulo}"
+                     th:text="${(item.hora != null ? item.hora + 'h ' : '') + item.titulo}">Item</div>
+            </div>
+        </div>
+    </section>
+</main>
+<script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
+<script>
+    document.getElementById('formUpload').addEventListener('submit', async (evento) => {
+        evento.preventDefault();
+        const input = document.getElementById('arquivoAgenda');
+        const caixaResultado = document.getElementById('resultadoUpload');
+        if (!input.files.length) return;
+
+        const dados = new FormData();
+        dados.append('arquivo', input.files[0]);
+        caixaResultado.className = 'resultado';
+        caixaResultado.textContent = '';
+
+        try {
+            const resposta = await fetch('/api/ingestao/agenda-pdf', { method: 'POST', body: dados });
+            if (!resposta.ok) throw new Error('Falha no upload (HTTP ' + resposta.status + ')');
+            const resultado = await resposta.json();
+            caixaResultado.className = 'resultado ok';
+            let html = `Lidas: ${resultado.totalLinhasLidas} · Gravadas: ${resultado.totalGravado}`;
+            if (resultado.divergencias && resultado.divergencias.length) {
+                html += '<ul>' + resultado.divergencias.map(d => `<li>${d}</li>`).join('') + '</ul>';
+            }
+            html += '<br>Recarregando em 2s...';
+            caixaResultado.innerHTML = html;
+            setTimeout(() => window.location.reload(), 2000);
+        } catch (erro) {
+            caixaResultado.className = 'resultado erro';
+            caixaResultado.textContent = erro.message;
+        }
+    });
+
+    document.getElementById('formEvento').addEventListener('submit', async (evento) => {
+        evento.preventDefault();
+        const caixaResultado = document.getElementById('resultadoEvento');
+        const corpo = {
+            titulo: document.getElementById('tituloEvento').value,
+            data: document.getElementById('dataEvento').value,
+            hora: document.getElementById('horaEvento').value ? Number(document.getElementById('horaEvento').value) : null,
+            tipo: document.getElementById('tipoEvento').value
+        };
+        const resposta = await fetch('/api/eventos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(corpo)
+        });
+        if (resposta.ok) {
+            caixaResultado.className = 'resultado ok';
+            caixaResultado.textContent = 'Adicionado. Recarregando...';
+            setTimeout(() => window.location.reload(), 600);
+        } else {
+            caixaResultado.className = 'resultado erro';
+            caixaResultado.textContent = 'Erro ao adicionar (HTTP ' + resposta.status + ')';
+        }
+    });
+</script>
+</body>
+</html>
