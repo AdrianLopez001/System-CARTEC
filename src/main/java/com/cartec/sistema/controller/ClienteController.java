@@ -60,4 +60,9 @@ public class ClienteController {
     public ResultadoImportacao upload(@RequestParam("arquivo") MultipartFile arquivo) throws IOException {
         return clienteImportService.importarXlsx(arquivo);
     }
+
+    @PostMapping("/upload-completo")
+    public ResultadoImportacao uploadCompleto(@RequestParam("arquivo") MultipartFile arquivo) throws IOException {
+        return clienteImportService.importarListaContatosCompletaXlsx(arquivo);
+    }
 }

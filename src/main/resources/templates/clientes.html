@@ -4,37 +4,77 @@
     <meta charset="UTF-8">
     <title>Cartec — Clientes</title>
     <style th:replace="~{fragments/estilos :: base}"></style>
+    <style>
+        .filtros { display: flex; gap: 14px; flex-wrap: wrap; align-items: end; margin-bottom: 16px; }
+        .filtros > div { min-width: 160px; }
+        .filtros label { display: block; font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 4px; }
+        .filtros select, .filtros input { width: 100%; padding: 7px 9px; border: 1px solid var(--grid); border-radius: 4px; background: var(--page); color: var(--text-primary); }
+        .filtros .checagem { display: flex; align-items: center; gap: 6px; padding-bottom: 8px; }
+        .filtros .checagem input { width: auto; }
+    </style>
 </head>
 <body>
 <header th:replace="~{fragments/nav :: topbar}"></header>
 <div class="page-header">
     <div>
         <h1>Clientes</h1>
-        <p th:text="${clientes.size()} + ' cadastrados'">0 cadastrados</p>
+        <p><span id="contagemVisivel">${clientes.size()}</span> de <span th:text="${clientes.size()}">0</span> cadastrados</p>
     </div>
     <a class="botao" href="/reengajamento">Reengajamento →</a>
+    <a class="botao secundario" th:href="@{/campanhas(aniversarioMes=${#temporals.createNow().monthValue})}">Campanha de aniversário →</a>
 </div>
 <main>
     <section class="card">
+        <div class="filtros">
+            <div>
+                <label for="filtroBusca">Buscar</label>
+                <input type="text" id="filtroBusca" placeholder="Nome ou telefone">
+            </div>
+            <div>
+                <label for="filtroCidade">Cidade</label>
+                <select id="filtroCidade"><option value="">Todas</option></select>
+            </div>
+            <div>
+                <label for="filtroTipoPessoa">Tipo</label>
+                <select id="filtroTipoPessoa"><option value="">Todos</option></select>
+            </div>
+            <div>
+                <label for="filtroSegmento">Segmento</label>
+                <select id="filtroSegmento"><option value="">Todos</option></select>
+            </div>
+            <div class="checagem">
+                <input type="checkbox" id="filtroAniversario">
+                <label for="filtroAniversario" style="margin:0;">Aniversariante do mês</label>
+            </div>
+        </div>
         <div class="tabela-scroll">
-            <table th:unless="${clientes.isEmpty()}">
+            <table th:unless="${clientes.isEmpty()}" id="tabelaClientes">
                 <thead>
                 <tr>
                     <th>Nome</th>
                     <th>Telefone</th>
+                    <th>Cidade</th>
+                    <th>Tipo</th>
                     <th>Tag</th>
-                    <th>Empresa</th>
                     <th>Segmento</th>
                     <th>Última visita</th>
                     <th>Total gasto</th>
+                    <th>Aniversário</th>
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="c : ${clientes}" th:with="m=${metricas.get(c.id)}">
+                <tr th:each="c : ${clientes}" th:with="m=${metricas.get(c.id)}"
+                    th:data-nome="${#strings.toLowerCase(c.nome)}"
+                    th:data-telefone="${c.telefone}"
+                    th:data-cidade="${c.cidade} ?: ''"
+                    th:data-tipo="${c.tipoPessoa} ?: ''"
+                    th:data-segmento="${m != null ? m.segmento.name() : 'SEM_HISTORICO'}"
+                    th:data-mes-nascimento="${c.dataNascimento != null ? c.dataNascimento.monthValue : ''}">
                     <td><a th:href="@{'/clientes/' + ${c.id}}" th:text="${c.nome}">Nome</a></td>
                     <td th:text="${c.telefone}">-</td>
+                    <td th:text="${c.cidade} ?: '-'">-</td>
+                    <td th:text="${c.tipoPessoa} ?: '-'">-</td>
                     <td th:text="${c.tag}">-</td>
-                    <td th:text="${c.empresa != null ? c.empresa.nome : '-'}">-</td>
                     <td>
                         <span th:if="${m != null}" class="badge"
                               th:classappend="'seg-' + ${#strings.toLowerCase(#strings.replace(m.segmento.name(),'_','-'))}"
@@ -43,6 +83,7 @@
                     </td>
                     <td th:text="${m != null and m.ultimaVisita != null ? #temporals.format(m.ultimaVisita, 'dd/MM/yyyy') : '-'}">-</td>
                     <td class="numero" th:text="${m != null ? 'R$ ' + #numbers.formatDecimal(m.valorTotalGasto, 1, 'POINT', 2, 'COMMA') : '-'}">-</td>
+                    <td th:text="${c.dataNascimento != null ? #temporals.format(c.dataNascimento, 'dd/MM') : '-'}">-</td>
                 </tr>
                 </tbody>
             </table>
@@ -51,5 +92,50 @@
     </section>
 </main>
 <script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
+<script>
+    const linhas = Array.from(document.querySelectorAll('#tabelaClientes tbody tr'));
+    const mesAtual = new Date().getMonth() + 1;
+
+    function popularOpcoes(seletorId, atributo, rotulos) {
+        const valores = [...new Set(linhas.map(l => l.dataset[atributo]).filter(v => v))].sort();
+        const select = document.getElementById(seletorId);
+        valores.forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v;
+            opt.textContent = rotulos ? (rotulos[v] || v) : v;
+            select.appendChild(opt);
+        });
+    }
+    popularOpcoes('filtroCidade', 'cidade');
+    popularOpcoes('filtroTipoPessoa', 'tipo');
+    popularOpcoes('filtroSegmento', 'segmento', {
+        ATIVO: 'Ativo', EM_RISCO: 'Em risco', INATIVO: 'Inativo', SEM_HISTORICO: 'Sem histórico'
+    });
+
+    function aplicarFiltros() {
+        const busca = document.getElementById('filtroBusca').value.toLowerCase();
+        const cidade = document.getElementById('filtroCidade').value;
+        const tipo = document.getElementById('filtroTipoPessoa').value;
+        const segmento = document.getElementById('filtroSegmento').value;
+        const soAniversario = document.getElementById('filtroAniversario').checked;
+
+        let visiveis = 0;
+        linhas.forEach(l => {
+            const bateBusca = !busca || l.dataset.nome.includes(busca) || (l.dataset.telefone || '').includes(busca);
+            const bateCidade = !cidade || l.dataset.cidade === cidade;
+            const bateTipo = !tipo || l.dataset.tipo === tipo;
+            const bateSegmento = !segmento || l.dataset.segmento === segmento;
+            const bateAniversario = !soAniversario || Number(l.dataset.mesNascimento) === mesAtual;
+            const mostra = bateBusca && bateCidade && bateTipo && bateSegmento && bateAniversario;
+            l.style.display = mostra ? '' : 'none';
+            if (mostra) visiveis++;
+        });
+        document.getElementById('contagemVisivel').textContent = visiveis;
+    }
+
+    ['filtroBusca', 'filtroCidade', 'filtroTipoPessoa', 'filtroSegmento', 'filtroAniversario'].forEach(id => {
+        document.getElementById(id).addEventListener('input', aplicarFiltros);
+    });
+</script>
 </body>
 </html>

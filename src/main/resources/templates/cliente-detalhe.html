@@ -62,6 +62,14 @@
                 <p><strong>Empresa:</strong> <span th:text="${cliente.empresa != null ? cliente.empresa.nome : '-'}">-</span></p>
                 <p><strong>Observações:</strong> <span th:text="${cliente.observacoes} ?: '-'">-</span></p>
                 <p><strong>Cadastrado em:</strong> <span th:text="${#temporals.format(cliente.dataCadastro, 'dd/MM/yyyy')}">-</span></p>
+                <p th:if="${cliente.dataNascimento != null}"><strong>Nascimento:</strong> <span th:text="${#temporals.format(cliente.dataNascimento, 'dd/MM/yyyy')}">-</span></p>
+                <p th:if="${cliente.tipoPessoa != null}"><strong>Tipo:</strong> <span th:text="${cliente.tipoPessoa}">-</span></p>
+                <p th:if="${cliente.cidade != null}"><strong>Cidade:</strong> <span th:text="${cliente.cidade}">-</span></p>
+                <p th:if="${cliente.bairro != null}"><strong>Bairro:</strong> <span th:text="${cliente.bairro}">-</span></p>
+                <p th:if="${cliente.enderecoLogradouro != null}"><strong>Endereço:</strong> <span th:text="${cliente.enderecoLogradouro}">-</span></p>
+                <p th:if="${cliente.ultimaVendaData != null}"><strong>Última venda (histórico):</strong>
+                    <span th:text="${#temporals.format(cliente.ultimaVendaData, 'dd/MM/yyyy')} + (cliente.ultimaVendaVeiculo != null ? ' — ' + cliente.ultimaVendaVeiculo : '') + (cliente.ultimaVendaPlaca != null ? ' (' + cliente.ultimaVendaPlaca + ')' : '')">-</span>
+                </p>
             </section>
 
             <section class="card">

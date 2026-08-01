@@ -14,7 +14,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.format.TextStyle;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -41,8 +43,8 @@ public class CampanhaService {
         this.segmentacaoService = segmentacaoService;
     }
 
-    public byte[] gerarXlsxDisparo(String tag, SegmentoCliente segmento, String mensagemTemplate) throws IOException {
-        List<Cliente> clientes = selecionarClientes(tag, segmento);
+    public byte[] gerarXlsxDisparo(String tag, SegmentoCliente segmento, Integer aniversarioMes, String mensagemTemplate) throws IOException {
+        List<Cliente> clientes = selecionarClientes(tag, segmento, aniversarioMes);
 
         try (XSSFWorkbook workbook = new XSSFWorkbook()) {
             Sheet sheet = workbook.createSheet("Disparo");
@@ -72,7 +74,12 @@ public class CampanhaService {
             }
 
             Campanha campanha = new Campanha();
-            campanha.setTagAlvo(segmento == null ? tag : null);
+            if (aniversarioMes != null) {
+                String nomeMes = java.time.Month.of(aniversarioMes).getDisplayName(TextStyle.FULL, new Locale("pt", "BR"));
+                campanha.setTagAlvo("Aniversariantes de " + nomeMes);
+            } else {
+                campanha.setTagAlvo(segmento == null ? tag : null);
+            }
             campanha.setSegmentoAlvo(segmento);
             campanha.setMensagemTemplate(mensagemTemplate);
             campanha.setQuantidadeClientes(clientes.size());
@@ -84,7 +91,12 @@ public class CampanhaService {
         }
     }
 
-    private List<Cliente> selecionarClientes(String tag, SegmentoCliente segmento) {
+    private List<Cliente> selecionarClientes(String tag, SegmentoCliente segmento, Integer aniversarioMes) {
+        if (aniversarioMes != null) {
+            return clienteRepository.findAll().stream()
+                    .filter(c -> c.getDataNascimento() != null && c.getDataNascimento().getMonthValue() == aniversarioMes)
+                    .toList();
+        }
         if (segmento != null) {
             Map<Long, ClienteSegmentacaoService.Metricas> metricas = segmentacaoService.calcularParaTodos();
             return clienteRepository.findAll().stream()

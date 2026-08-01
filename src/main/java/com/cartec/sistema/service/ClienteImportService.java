@@ -86,6 +86,62 @@ public class ClienteImportService {
         }
     }
 
+    /**
+     * Import da "Lista de Contatos Completo" (aba CRMBI) - formato bem mais
+     * rico que o simples (nascimento, endereco, ultima venda, total gasto
+     * historico). Upsert por codigo externo quando presente, senao por
+     * telefone padronizado. Nao mexe em tag/observacoes/empresa - campos que
+     * nao vem nesse export, pra nao apagar o que ja foi curado manualmente.
+     */
+    public ResultadoImportacao importarListaContatosCompletaXlsx(MultipartFile arquivo) throws IOException {
+        try (InputStream in = arquivo.getInputStream();
+             Workbook workbook = WorkbookFactory.create(in)) {
+
+            ListaContatosXlsxParser.Resultado resultado = ListaContatosXlsxParser.parse(workbook.getSheetAt(0));
+            List<String> divergencias = new ArrayList<>(resultado.divergencias());
+            int totalGravado = 0;
+
+            for (ListaContatosXlsxParser.ContatoImportado c : resultado.contatos()) {
+                String telefone = PhoneUtils.padronizar(c.telefoneBruto);
+
+                Cliente cliente = (c.codigoExterno != null ? clienteRepository.findByCodigoExterno(c.codigoExterno) : java.util.Optional.<Cliente>empty())
+                        .or(() -> clienteRepository.findByTelefone(telefone))
+                        .orElseGet(Cliente::new);
+
+                cliente.setCodigoExterno(c.codigoExterno);
+                cliente.setNome(c.nome);
+                cliente.setTelefone(telefone);
+                cliente.setSexo(c.sexo);
+                cliente.setDataNascimento(c.dataNascimento);
+                cliente.setTipoPessoa(c.tipoPessoa);
+                if (c.email != null) {
+                    cliente.setEmail(c.email);
+                }
+                cliente.setEnderecoLogradouro(c.enderecoLogradouro);
+                cliente.setEnderecoComplemento(c.enderecoComplemento);
+                cliente.setBairro(c.bairro);
+                cliente.setCidade(c.cidade);
+                cliente.setUf(c.uf);
+                cliente.setCep(c.cep);
+                if (c.dataCadastro != null) {
+                    cliente.setDataCadastro(c.dataCadastro);
+                }
+                cliente.setUltimaVendaData(c.ultimaVendaData);
+                cliente.setUltimaVendaVeiculo(c.ultimaVendaVeiculo);
+                cliente.setUltimaVendaPlaca(c.ultimaVendaPlaca);
+                cliente.setTotalGastoHistorico(c.totalGastoHistorico);
+                cliente.setQtdOsHistorico(c.qtdOsHistorico);
+                cliente.setMediaGastoHistorico(c.mediaGastoHistorico);
+
+                clienteRepository.save(cliente);
+                totalGravado++;
+            }
+
+            int totalLinhas = resultado.contatos().size() + resultado.divergencias().size();
+            return new ResultadoImportacao(totalLinhas, totalGravado, divergencias);
+        }
+    }
+
     private Map<String, Integer> mapearColunas(Row cabecalho) {
         Map<String, Integer> colunas = new HashMap<>();
         for (Cell celula : cabecalho) {

@@ -13,6 +13,8 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
 
     Optional<Cliente> findByNomeIgnoreCase(String nome);
 
+    Optional<Cliente> findByCodigoExterno(String codigoExterno);
+
     java.util.List<Cliente> findByEmpresaId(Long empresaId);
 
     java.util.List<Cliente> findByDemoTrue();

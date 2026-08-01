@@ -49,12 +49,15 @@ public class CampanhaController {
     @PostMapping("/campanhas/exportar")
     public ResponseEntity<byte[]> exportar(@RequestParam(required = false) String tag,
                                             @RequestParam(required = false) String segmento,
+                                            @RequestParam(required = false) Integer aniversarioMes,
                                             @RequestParam String mensagem) throws IOException {
         SegmentoCliente segmentoAlvo = (segmento == null || segmento.isBlank()) ? null : SegmentoCliente.valueOf(segmento);
-        byte[] arquivo = campanhaService.gerarXlsxDisparo(tag, segmentoAlvo, mensagem);
+        byte[] arquivo = campanhaService.gerarXlsxDisparo(tag, segmentoAlvo, aniversarioMes, mensagem);
 
         String sufixo;
-        if (segmentoAlvo != null) {
+        if (aniversarioMes != null) {
+            sufixo = "aniversariantes-mes-" + aniversarioMes;
+        } else if (segmentoAlvo != null) {
             sufixo = "segmento-" + segmentoAlvo.name().toLowerCase().replace('_', '-');
         } else if (tag != null && !tag.isBlank()) {
             sufixo = tag.replaceAll("\\s+", "-").toLowerCase();

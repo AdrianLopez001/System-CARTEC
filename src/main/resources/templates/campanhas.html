@@ -30,6 +30,17 @@
             <button type="submit">Importar</button>
         </form>
         <div id="resultadoUpload" class="resultado"></div>
+
+        <p class="descricao" style="margin-top:20px;">
+            Ou a base completa exportada da Oficina Inteligente ("Lista de Contatos Completo", aba CRMBI) —
+            traz nascimento, endereço, última venda e histórico de gasto direto.
+        </p>
+        <form id="formUploadCompleto">
+            <label for="arquivoClientesCompleto">Arquivo .xlsx (lista completa)</label>
+            <input type="file" id="arquivoClientesCompleto" name="arquivo" accept=".xlsx,.xls" required>
+            <button type="submit">Importar base completa</button>
+        </form>
+        <div id="resultadoUploadCompleto" class="resultado"></div>
     </section>
 
     <section class="card">
@@ -44,6 +55,7 @@
             <select id="modoGrupo">
                 <option value="tag">Tag</option>
                 <option value="segmento">Segmento (recência)</option>
+                <option value="aniversario">Aniversariantes do mês</option>
             </select>
 
             <div id="blocoTag">
@@ -58,6 +70,24 @@
                 <label for="segmento">Segmento</label>
                 <select id="segmento" name="segmento" disabled>
                     <option th:each="s : ${segmentos}" th:value="${s}" th:text="${s.rotulo}"></option>
+                </select>
+            </div>
+
+            <div id="blocoAniversario" style="display:none;">
+                <label for="aniversarioMes">Mês</label>
+                <select id="aniversarioMes" name="aniversarioMes" disabled>
+                    <option value="1">Janeiro</option>
+                    <option value="2">Fevereiro</option>
+                    <option value="3">Março</option>
+                    <option value="4">Abril</option>
+                    <option value="5">Maio</option>
+                    <option value="6">Junho</option>
+                    <option value="7">Julho</option>
+                    <option value="8">Agosto</option>
+                    <option value="9">Setembro</option>
+                    <option value="10">Outubro</option>
+                    <option value="11">Novembro</option>
+                    <option value="12">Dezembro</option>
                 </select>
             </div>
 
@@ -99,23 +129,32 @@
     const modoGrupo = document.getElementById('modoGrupo');
     const blocoTag = document.getElementById('blocoTag');
     const blocoSegmento = document.getElementById('blocoSegmento');
+    const blocoAniversario = document.getElementById('blocoAniversario');
     const selectTag = document.getElementById('tag');
     const selectSegmento = document.getElementById('segmento');
+    const selectAniversario = document.getElementById('aniversarioMes');
 
     function aplicarModo() {
         const porSegmento = modoGrupo.value === 'segmento';
-        blocoTag.style.display = porSegmento ? 'none' : 'block';
+        const porAniversario = modoGrupo.value === 'aniversario';
+        blocoTag.style.display = (porSegmento || porAniversario) ? 'none' : 'block';
         blocoSegmento.style.display = porSegmento ? 'block' : 'none';
-        selectTag.disabled = porSegmento;
+        blocoAniversario.style.display = porAniversario ? 'block' : 'none';
+        selectTag.disabled = porSegmento || porAniversario;
         selectSegmento.disabled = !porSegmento;
+        selectAniversario.disabled = !porAniversario;
     }
     modoGrupo.addEventListener('change', aplicarModo);
 
     const parametros = new URLSearchParams(window.location.search);
     const segmentoNaUrl = parametros.get('segmento');
+    const aniversarioNaUrl = parametros.get('aniversarioMes');
     if (segmentoNaUrl) {
         modoGrupo.value = 'segmento';
         selectSegmento.value = segmentoNaUrl;
+    } else if (aniversarioNaUrl) {
+        modoGrupo.value = 'aniversario';
+        selectAniversario.value = aniversarioNaUrl;
     }
     aplicarModo();
 
@@ -143,6 +182,38 @@
                 html += '<ul>' + resultado.divergencias.map(d => `<li>${d}</li>`).join('') + '</ul>';
             }
             caixaResultado.innerHTML = html;
+        } catch (erro) {
+            caixaResultado.className = 'resultado erro';
+            caixaResultado.textContent = erro.message;
+        }
+    });
+
+    document.getElementById('formUploadCompleto').addEventListener('submit', async (evento) => {
+        evento.preventDefault();
+        const input = document.getElementById('arquivoClientesCompleto');
+        const caixaResultado = document.getElementById('resultadoUploadCompleto');
+        if (!input.files.length) return;
+
+        const dados = new FormData();
+        dados.append('arquivo', input.files[0]);
+
+        caixaResultado.className = 'resultado';
+        caixaResultado.textContent = '';
+
+        try {
+            const resposta = await fetch('/api/clientes/upload-completo', { method: 'POST', body: dados });
+            if (!resposta.ok) {
+                throw new Error('Falha no upload (HTTP ' + resposta.status + ')');
+            }
+            const resultado = await resposta.json();
+            caixaResultado.className = 'resultado ok';
+            let html = `Lidas: ${resultado.totalLinhasLidas} · Gravadas: ${resultado.totalGravado}`;
+            if (resultado.divergencias && resultado.divergencias.length) {
+                html += '<ul>' + resultado.divergencias.map(d => `<li>${d}</li>`).join('') + '</ul>';
+            }
+            html += '<br>Recarregando em 2s...';
+            caixaResultado.innerHTML = html;
+            setTimeout(() => window.location.reload(), 2000);
         } catch (erro) {
             caixaResultado.className = 'resultado erro';
             caixaResultado.textContent = erro.message;
