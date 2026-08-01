@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Cartec — WhatsApp</title>
+    <style th:replace="~{fragments/estilos :: base}"></style>
+</head>
+<body>
+<header th:replace="~{fragments/nav :: topbar}"></header>
+<div class="page-header">
+    <div>
+        <h1>WhatsApp</h1>
+        <p th:text="${mensagens.size()} + ' conversa(s) classificadas pela IA'">0 conversas</p>
+    </div>
+</div>
+<main>
+    <section class="card">
+        <h2>Caixa de entrada</h2>
+        <p class="descricao">
+            Classificação automática (intenção, urgência, consultor sugerido) feita pelo
+            <code>whatsapp-bot</code> — ver <code>whatsapp-bot/README.md</code> no repositório pra
+            rodar. "Abrir no WhatsApp" só monta o link wa.me pra você continuar a conversa manualmente
+            — nada é enviado sozinho.
+        </p>
+        <div class="caixa-entrada">
+            <div class="msg-item" th:each="m : ${mensagens}" th:classappend="${m.lida} ? 'lida' : ''" th:id="'msg-' + ${m.id}">
+                <div class="topo">
+                    <span class="quem">
+                        <a th:if="${m.cliente != null}" th:href="@{'/clientes/' + ${m.cliente.id}}" th:text="${m.cliente.nome}">Cliente</a>
+                        <span th:if="${m.cliente == null}" th:text="${m.clienteNomeIa} + ' (não cadastrado)'">Nome (não cadastrado)</span>
+                        <span style="color:var(--muted); font-weight:400;" th:text="'· ' + ${m.telefone}">telefone</span>
+                    </span>
+                    <span class="quando" th:text="${#temporals.format(m.dataRecebimento, 'dd/MM/yyyy HH:mm')}">01/01/2026 00:00</span>
+                </div>
+                <div>
+                    <span class="badge" th:if="${m.intencao != null}" th:text="${m.intencao}">intenção</span>
+                    <span class="badge seg-inativo" th:if="${m.urgencia == 'urgente'}" th:text="'urgência: ' + ${m.urgencia}">urgência</span>
+                    <span class="badge seg-em-risco" th:if="${m.urgencia == 'normal'}" th:text="'urgência: ' + ${m.urgencia}">urgência</span>
+                    <span class="badge seg-ativo" th:if="${m.urgencia == 'baixa'}" th:text="'urgência: ' + ${m.urgencia}">urgência</span>
+                    <span class="badge" th:if="${m.consultorSugerido != null}" style="background:transparent; border:1px solid var(--grid); color:var(--text-secondary);" th:text="'consultor: ' + ${m.consultorSugerido}">consultor</span>
+                    <span th:if="${m.veiculo != null and m.veiculo != 'não mencionado'}" style="font-size:0.8rem; color:var(--text-secondary);" th:text="'· ' + ${m.veiculo}">veículo</span>
+                </div>
+                <p class="resumo" th:text="${m.resumo}">Resumo da conversa</p>
+                <p style="font-size:0.78rem; color:var(--muted); margin:0;" th:text="${m.totalMensagens} + ' mensagem(ns) na conversa'">0 mensagens</p>
+                <div class="acoes">
+                    <a class="botao" th:href="'https://wa.me/' + ${m.telefone}" target="_blank" rel="noopener">Abrir no WhatsApp →</a>
+                    <button th:if="${m.cliente == null}" class="secundario" type="button"
+                            th:attr="onclick=|criarCliente(${m.id}, '${m.clienteNomeIa}', '${m.telefone}')|">Criar cliente</button>
+                    <button th:unless="${m.lida}" class="secundario" type="button" th:attr="onclick=|marcarLida(${m.id})|">Marcar como lida</button>
+                </div>
+            </div>
+        </div>
+        <p class="vazio" th:if="${mensagens.isEmpty()}">
+            Nenhuma mensagem classificada ainda. Rode o whatsapp-bot (<code>whatsapp-bot/README.md</code>)
+            pra começar a receber aqui.
+        </p>
+    </section>
+</main>
+<script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
+<script>
+    async function marcarLida(id) {
+        await fetch('/api/whatsapp/mensagens/' + id + '/marcar-lida', { method: 'POST' });
+        window.location.reload();
+    }
+
+    async function criarCliente(id, nome, telefone) {
+        const nomeFinal = (nome === 'desconhecido' || !nome) ? prompt('Nome do cliente:') : nome;
+        if (!nomeFinal) return;
+        const resposta = await fetch('/api/clientes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome: nomeFinal, telefone: telefone })
+        });
+        if (resposta.ok) {
+            window.location.reload();
+        } else {
+            alert('Erro ao criar cliente (HTTP ' + resposta.status + ')');
+        }
+    }
+</script>
+</body>
+</html>

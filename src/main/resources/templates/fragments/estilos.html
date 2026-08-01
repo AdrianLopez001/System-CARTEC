@@ -241,6 +241,16 @@
     .badge.seg-inativo { background: color-mix(in srgb, var(--bad) 12%, transparent); color: var(--bad); }
     .badge.seg-sem-historico { background: color-mix(in srgb, var(--muted) 18%, transparent); color: var(--text-secondary); }
 
+    .caixa-entrada { display: flex; flex-direction: column; gap: 10px; }
+    .msg-item { background: var(--surface-1); border: 1px solid var(--grid); border-left: 3px solid var(--brand); border-radius: 4px; padding: 14px 16px; }
+    .msg-item.lida { border-left-color: var(--grid); opacity: 0.75; }
+    .msg-item .topo { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+    .msg-item .quem { font-weight: 600; }
+    .msg-item .quando { font-size: 0.78rem; color: var(--muted); }
+    .msg-item .resumo { font-size: 0.9rem; margin: 6px 0; }
+    .msg-item .acoes { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .msg-item .acoes .botao, .msg-item .acoes button { padding: 6px 12px; font-size: 0.8rem; }
+
     .grid-2 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
     @media (max-width: 720px) { .grid-2 { grid-template-columns: 1fr; } }
 

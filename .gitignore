@@ -7,3 +7,8 @@ data/
 .settings/
 .classpath
 .project
+
+# whatsapp-bot: node_modules e sessao (credenciais de login) nunca vao pro git
+whatsapp-bot/node_modules/
+whatsapp-bot/sessao/
+whatsapp-bot/.env
