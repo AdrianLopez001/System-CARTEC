@@ -31,7 +31,7 @@
         <div class="tile">
             <div class="label">% da meta atingida</div>
             <div class="value" th:if="${percentualMeta != null}"
-                 th:text="${#numbers.formatDecimal(percentualMeta, 1, 1, 'COMMA') + '%'}">0%</div>
+                 th:text="${#numbers.formatDecimal(percentualMeta, 1, 'POINT', 1, 'COMMA') + '%'}">0%</div>
             <div class="value dash" th:if="${percentualMeta == null}">meta não cadastrada</div>
         </div>
     </section>
@@ -71,7 +71,7 @@
             <div class="tile">
                 <div class="label">% da meta (atual → projetado)</div>
                 <div class="value" th:if="${projecao.percentualMetaAtual != null}"
-                     th:text="${#numbers.formatDecimal(projecao.percentualMetaAtual, 1, 1, 'COMMA') + '% → ' + #numbers.formatDecimal(projecao.percentualMetaProjetado, 1, 1, 'COMMA') + '%'}">0% → 0%</div>
+                     th:text="${#numbers.formatDecimal(projecao.percentualMetaAtual, 1, 'POINT', 1, 'COMMA') + '% → ' + #numbers.formatDecimal(projecao.percentualMetaProjetado, 1, 'POINT', 1, 'COMMA') + '%'}">0% → 0%</div>
                 <div class="value dash" th:if="${projecao.percentualMetaAtual == null}">cadastre a meta</div>
             </div>
         </div>

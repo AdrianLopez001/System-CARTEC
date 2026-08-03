@@ -52,6 +52,24 @@ public class Cliente {
     @Column(name = "tipo_pessoa")
     private String tipoPessoa;
 
+    @Column(name = "cpf")
+    private String cpf;
+
+    @Column(name = "rg")
+    private String rg;
+
+    @Column(name = "cnpj")
+    private String cnpj;
+
+    @Column(name = "razao_social")
+    private String razaoSocial;
+
+    @Column(name = "nome_fantasia")
+    private String nomeFantasia;
+
+    @Column(name = "inscricao_estadual")
+    private String inscricaoEstadual;
+
     @Column(name = "endereco_logradouro")
     private String enderecoLogradouro;
 
@@ -296,5 +314,53 @@ public class Cliente {
 
     public void setMediaGastoHistorico(BigDecimal mediaGastoHistorico) {
         this.mediaGastoHistorico = mediaGastoHistorico;
+    }
+
+    public String getCpf() {
+        return cpf;
+    }
+
+    public void setCpf(String cpf) {
+        this.cpf = cpf;
+    }
+
+    public String getRg() {
+        return rg;
+    }
+
+    public void setRg(String rg) {
+        this.rg = rg;
+    }
+
+    public String getCnpj() {
+        return cnpj;
+    }
+
+    public void setCnpj(String cnpj) {
+        this.cnpj = cnpj;
+    }
+
+    public String getRazaoSocial() {
+        return razaoSocial;
+    }
+
+    public void setRazaoSocial(String razaoSocial) {
+        this.razaoSocial = razaoSocial;
+    }
+
+    public String getNomeFantasia() {
+        return nomeFantasia;
+    }
+
+    public void setNomeFantasia(String nomeFantasia) {
+        this.nomeFantasia = nomeFantasia;
+    }
+
+    public String getInscricaoEstadual() {
+        return inscricaoEstadual;
+    }
+
+    public void setInscricaoEstadual(String inscricaoEstadual) {
+        this.inscricaoEstadual = inscricaoEstadual;
     }
 }

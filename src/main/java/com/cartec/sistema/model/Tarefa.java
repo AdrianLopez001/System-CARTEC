@@ -34,10 +34,6 @@ public class Tarefa {
     @JoinColumn(name = "cliente_id")
     private Cliente cliente;
 
-    @ManyToOne
-    @JoinColumn(name = "negociacao_id")
-    private Negociacao negociacao;
-
     @Column(name = "data_criacao")
     private LocalDateTime dataCriacao;
 
@@ -100,14 +96,6 @@ public class Tarefa {
 
     public void setCliente(Cliente cliente) {
         this.cliente = cliente;
-    }
-
-    public Negociacao getNegociacao() {
-        return negociacao;
-    }
-
-    public void setNegociacao(Negociacao negociacao) {
-        this.negociacao = negociacao;
     }
 
     public LocalDateTime getDataCriacao() {

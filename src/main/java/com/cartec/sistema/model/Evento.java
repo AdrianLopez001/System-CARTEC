@@ -51,6 +51,29 @@ public class Evento {
     @JoinColumn(name = "cliente_id")
     private Cliente cliente;
 
+    @ManyToOne
+    @JoinColumn(name = "empresa_id")
+    private Empresa empresa;
+
+    @Column(name = "local")
+    private String local;
+
+    @Column(name = "status")
+    private String status;
+
+    @Column(name = "equipe_escalada")
+    private String equipeEscalada;
+
+    @Column(name = "observacoes", columnDefinition = "TEXT")
+    private String observacoes;
+
+    @Column(name = "link_documento")
+    private String linkDocumento;
+
+    @ManyToOne
+    @JoinColumn(name = "ordem_servico_id")
+    private OrdemServico ordemServico;
+
     @Column(name = "data_criacao")
     private LocalDateTime dataCriacao;
 
@@ -166,5 +189,61 @@ public class Evento {
 
     public void setDemo(boolean demo) {
         this.demo = demo;
+    }
+
+    public Empresa getEmpresa() {
+        return empresa;
+    }
+
+    public void setEmpresa(Empresa empresa) {
+        this.empresa = empresa;
+    }
+
+    public String getLocal() {
+        return local;
+    }
+
+    public void setLocal(String local) {
+        this.local = local;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getEquipeEscalada() {
+        return equipeEscalada;
+    }
+
+    public void setEquipeEscalada(String equipeEscalada) {
+        this.equipeEscalada = equipeEscalada;
+    }
+
+    public String getObservacoes() {
+        return observacoes;
+    }
+
+    public void setObservacoes(String observacoes) {
+        this.observacoes = observacoes;
+    }
+
+    public String getLinkDocumento() {
+        return linkDocumento;
+    }
+
+    public void setLinkDocumento(String linkDocumento) {
+        this.linkDocumento = linkDocumento;
+    }
+
+    public OrdemServico getOrdemServico() {
+        return ordemServico;
+    }
+
+    public void setOrdemServico(OrdemServico ordemServico) {
+        this.ordemServico = ordemServico;
     }
 }

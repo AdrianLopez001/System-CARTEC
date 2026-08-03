@@ -20,9 +20,9 @@ public class DemoDataService {
     private final EmpresaRepository empresaRepository;
     private final ClienteRepository clienteRepository;
     private final OrdemServicoRepository ordemServicoRepository;
-    private final NegociacaoRepository negociacaoRepository;
     private final TarefaRepository tarefaRepository;
     private final NotaRepository notaRepository;
+    private final EventoRepository eventoRepository;
     private final MetricaSemanalRepository metricaSemanalRepository;
     private final MetaRepository metaRepository;
     private final CampanhaRepository campanhaRepository;
@@ -31,9 +31,9 @@ public class DemoDataService {
     public DemoDataService(EmpresaRepository empresaRepository,
                             ClienteRepository clienteRepository,
                             OrdemServicoRepository ordemServicoRepository,
-                            NegociacaoRepository negociacaoRepository,
                             TarefaRepository tarefaRepository,
                             NotaRepository notaRepository,
+                            EventoRepository eventoRepository,
                             MetricaSemanalRepository metricaSemanalRepository,
                             MetaRepository metaRepository,
                             CampanhaRepository campanhaRepository,
@@ -41,9 +41,9 @@ public class DemoDataService {
         this.empresaRepository = empresaRepository;
         this.clienteRepository = clienteRepository;
         this.ordemServicoRepository = ordemServicoRepository;
-        this.negociacaoRepository = negociacaoRepository;
         this.tarefaRepository = tarefaRepository;
         this.notaRepository = notaRepository;
+        this.eventoRepository = eventoRepository;
         this.metricaSemanalRepository = metricaSemanalRepository;
         this.metaRepository = metaRepository;
         this.campanhaRepository = campanhaRepository;
@@ -82,11 +82,6 @@ public class DemoDataService {
         criarOs("DEMO-90007", hoje.minusDays(140), fabio, new BigDecimal("890.00"), new BigDecimal("410.00"), "LUIZ", "Troca de embreagem");
         criarOs("DEMO-90008", hoje.minusDays(2), ana, new BigDecimal("410.00"), new BigDecimal("290.00"), "ADRIAN", "Pastilha e disco de freio");
 
-        criarNegociacao("Revisão trimestral - Frotas Nordeste", carla, frotasNordeste, new BigDecimal("4200.00"), EstagioNegociacao.EM_EXECUCAO, hoje.plusDays(5));
-        criarNegociacao("Pacote de manutenção anual - ABC Locadora", diego, abcLocadora, new BigDecimal("9800.00"), EstagioNegociacao.ORCAMENTO_ENVIADO, hoje.plusDays(15));
-        criarNegociacao("Troca de suspensão completa", bruno, null, new BigDecimal("1450.00"), EstagioNegociacao.APROVADO, hoje.plusDays(3));
-        criarNegociacao("Revisão de 60 mil km", elaine, null, new BigDecimal("780.00"), EstagioNegociacao.FATURADO, hoje.minusDays(2));
-
         criarTarefa("Ligar pra confirmar retirada do veículo", ana, hoje.plusDays(1), false);
         criarTarefa("Enviar orçamento da revisão de frota", carla, hoje.plusDays(2), false);
         criarTarefa("Follow-up pós-serviço (satisfação)", elaine, hoje.minusDays(1), true);
@@ -114,9 +109,9 @@ public class DemoDataService {
 
     @Transactional
     public void desativar() {
+        eventoRepository.deleteAll(eventoRepository.findByDemoTrue());
         tarefaRepository.deleteAll(tarefaRepository.findByDemoTrue());
         notaRepository.deleteAll(notaRepository.findByDemoTrue());
-        negociacaoRepository.deleteAll(negociacaoRepository.findByDemoTrue());
         ordemServicoRepository.deleteAll(ordemServicoRepository.findByDemoTrue());
         campanhaRepository.deleteAll(campanhaRepository.findByDemoTrue());
         metricaSemanalRepository.deleteAll(metricaSemanalRepository.findByDemoTrue());
@@ -171,18 +166,6 @@ public class DemoDataService {
         os.setRegraNegociacao("VENDA");
         os.setDemo(true);
         ordemServicoRepository.save(os);
-    }
-
-    private void criarNegociacao(String titulo, Cliente cliente, Empresa empresa, BigDecimal valor, EstagioNegociacao estagio, LocalDate previsao) {
-        Negociacao negociacao = new Negociacao();
-        negociacao.setTitulo(titulo);
-        negociacao.setCliente(cliente);
-        negociacao.setEmpresa(empresa);
-        negociacao.setValor(valor);
-        negociacao.setEstagio(estagio);
-        negociacao.setDataPrevisao(previsao);
-        negociacao.setDemo(true);
-        negociacaoRepository.save(negociacao);
     }
 
     private void criarTarefa(String titulo, Cliente cliente, LocalDate vencimento, boolean concluida) {

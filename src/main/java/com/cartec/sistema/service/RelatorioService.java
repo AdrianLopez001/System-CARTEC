@@ -1,10 +1,8 @@
 package com.cartec.sistema.service;
 
 import com.cartec.sistema.model.Cliente;
-import com.cartec.sistema.model.Negociacao;
 import com.cartec.sistema.model.OrdemServico;
 import com.cartec.sistema.repository.ClienteRepository;
-import com.cartec.sistema.repository.NegociacaoRepository;
 import com.cartec.sistema.repository.OrdemServicoRepository;
 import org.springframework.stereotype.Service;
 
@@ -20,55 +18,38 @@ import java.util.stream.Collectors;
 /**
  * Motor de relatorios customizaveis (estilo "custom report" do HubSpot):
  * escolhe fonte de dados + campo pra agrupar + metrica, agrega em memoria.
- * Volume atual do sistema (dezenas/centenas de linhas) nao justifica um
- * motor de query dinamica - se crescer muito, revisar pra JPQL agregada.
  */
 @Service
 public class RelatorioService {
 
-    private final NegociacaoRepository negociacaoRepository;
     private final OrdemServicoRepository ordemServicoRepository;
     private final ClienteRepository clienteRepository;
     private final ClienteSegmentacaoService segmentacaoService;
 
-    public RelatorioService(NegociacaoRepository negociacaoRepository,
-                             OrdemServicoRepository ordemServicoRepository,
+    public RelatorioService(OrdemServicoRepository ordemServicoRepository,
                              ClienteRepository clienteRepository,
                              ClienteSegmentacaoService segmentacaoService) {
-        this.negociacaoRepository = negociacaoRepository;
         this.ordemServicoRepository = ordemServicoRepository;
         this.clienteRepository = clienteRepository;
         this.segmentacaoService = segmentacaoService;
     }
 
     public static final Map<String, List<String>> CAMPOS_POR_FONTE = Map.of(
-            "NEGOCIACOES", List.of("estagio"),
             "ORDENS_SERVICO", List.of("responsavel", "regraNegociacao", "status"),
             "CLIENTES", List.of("tag", "segmento")
     );
 
     public static final Map<String, List<String>> METRICAS_POR_FONTE = Map.of(
-            "NEGOCIACOES", List.of("contagem", "somaValor"),
             "ORDENS_SERVICO", List.of("contagem", "somaTotal", "somaProduto", "somaServico"),
             "CLIENTES", List.of("contagem", "somaValorGasto")
     );
 
     public List<Linha> gerar(String fonte, String agruparPor, String metrica) {
         return switch (fonte) {
-            case "NEGOCIACOES" -> gerarNegociacoes(agruparPor, metrica);
             case "ORDENS_SERVICO" -> gerarOrdensServico(agruparPor, metrica);
             case "CLIENTES" -> gerarClientes(agruparPor, metrica);
             default -> throw new IllegalArgumentException("Fonte desconhecida: " + fonte);
         };
-    }
-
-    private List<Linha> gerarNegociacoes(String agruparPor, String metrica) {
-        List<Negociacao> dados = negociacaoRepository.findAll();
-        Function<Negociacao, String> chave = switch (agruparPor) {
-            case "estagio" -> n -> n.getEstagio().getRotulo();
-            default -> throw new IllegalArgumentException("Campo invalido para negociacoes: " + agruparPor);
-        };
-        return agregar(dados, chave, metrica.equals("somaValor") ? Negociacao::getValor : null);
     }
 
     private List<Linha> gerarOrdensServico(String agruparPor, String metrica) {

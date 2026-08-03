@@ -2,139 +2,284 @@
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Cartec — Clientes</title>
+    <title>Cartec — Clientes e Empresas</title>
     <style th:replace="~{fragments/estilos :: base}"></style>
     <style>
+        .aba-container { display: flex; gap: 8px; border-bottom: 2px solid var(--grid); margin-bottom: 20px; }
+        .aba-item { padding: 10px 18px; font-weight: 600; cursor: pointer; color: var(--text-secondary); border-bottom: 2px solid transparent; margin-bottom: -2px; }
+        .aba-item.ativa { color: var(--accent); border-bottom-color: var(--accent); }
+        .tab-conteudo { display: none; }
+        .tab-conteudo.ativo { display: block; }
         .filtros { display: flex; gap: 14px; flex-wrap: wrap; align-items: end; margin-bottom: 16px; }
-        .filtros > div { min-width: 160px; }
+        .filtros > div { min-width: 150px; }
         .filtros label { display: block; font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 4px; }
         .filtros select, .filtros input { width: 100%; padding: 7px 9px; border: 1px solid var(--grid); border-radius: 4px; background: var(--page); color: var(--text-primary); }
-        .filtros .checagem { display: flex; align-items: center; gap: 6px; padding-bottom: 8px; }
-        .filtros .checagem input { width: auto; }
     </style>
 </head>
 <body>
 <header th:replace="~{fragments/nav :: topbar}"></header>
 <div class="page-header">
     <div>
-        <h1>Clientes</h1>
-        <p><span id="contagemVisivel">${clientes.size()}</span> de <span th:text="${clientes.size()}">0</span> cadastrados</p>
+        <h1>Clientes e Empresas</h1>
+        <p>Gestão organizada de Pessoa Física (PF), Pessoa Jurídica (PJ) e Contas Corporativas</p>
     </div>
-    <a class="botao" href="/reengajamento">Reengajamento →</a>
-    <a class="botao secundario" th:href="@{/campanhas(aniversarioMes=${#temporals.createNow().monthValue})}">Campanha de aniversário →</a>
+    <div>
+        <a class="botao" href="/reengajamento">Reengajamento →</a>
+        <a class="botao secundario" th:href="@{/campanhas(aniversarioMes=${#temporals.createNow().monthValue})}">Campanha de Aniversário →</a>
+    </div>
 </div>
 <main>
-    <section class="card">
-        <div class="filtros">
-            <div>
-                <label for="filtroBusca">Buscar</label>
-                <input type="text" id="filtroBusca" placeholder="Nome ou telefone">
+    <div class="aba-container">
+        <div class="aba-item ativa" onclick="trocarAba('pf')">👤 Pessoa Física (PF)</div>
+        <div class="aba-item" onclick="trocarAba('pj')">🏢 Pessoa Jurídica (PJ)</div>
+        <div class="aba-item" onclick="trocarAba('empresas')">📊 Empresas & Frotas</div>
+    </div>
+
+    <!-- ABA 1: PESSOA FÍSICA (PF) -->
+    <div id="tab-pf" class="tab-conteudo ativo">
+        <section class="card">
+            <h2>Filtrar Clientes PF</h2>
+            <div class="filtros">
+                <div>
+                    <label for="buscaPf">Buscar Nome/CPF/Tel</label>
+                    <input type="text" id="buscaPf" placeholder="Nome, CPF ou Telefone" oninput="filtrarPf()">
+                </div>
+                <div>
+                    <label for="cidadePf">Cidade</label>
+                    <input type="text" id="cidadePf" placeholder="Cidade" oninput="filtrarPf()">
+                </div>
+                <div>
+                    <label for="tagPf">Tag</label>
+                    <input type="text" id="tagPf" placeholder="Varejo, VIP, etc." oninput="filtrarPf()">
+                </div>
             </div>
-            <div>
-                <label for="filtroCidade">Cidade</label>
-                <select id="filtroCidade"><option value="">Todas</option></select>
+            <div class="tabela-scroll">
+                <table id="tabelaPf">
+                    <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>CPF / RG</th>
+                        <th>Telefone</th>
+                        <th>Cidade/UF</th>
+                        <th>Data Nasc.</th>
+                        <th>Tag</th>
+                        <th>Ações</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="c : ${clientes}" th:if="${c.tipoPessoa == null or c.tipoPessoa == 'PF' or c.tipoPessoa == 'Fisica' or c.tipoPessoa == ''}"
+                        th:data-nome="${#strings.toLowerCase(c.nome)}"
+                        th:data-cpf="${c.cpf != null ? c.cpf : ''}"
+                        th:data-tel="${c.telefone}"
+                        th:data-cidade="${c.cidade != null ? #strings.toLowerCase(c.cidade) : ''}"
+                        th:data-tag="${c.tag != null ? #strings.toLowerCase(c.tag) : ''}">
+                        <td><a th:href="@{'/clientes/' + ${c.id}}" th:text="${c.nome}" style="font-weight:600;">Nome</a></td>
+                        <td th:text="${(c.cpf != null ? c.cpf : '-') + (c.rg != null ? ' / ' + c.rg : '')}">-</td>
+                        <td th:text="${c.telefone}">-</td>
+                        <td th:text="${(c.cidade != null ? c.cidade : '-') + (c.uf != null ? '/' + c.uf : '')}">-</td>
+                        <td th:text="${c.dataNascimento != null ? #temporals.format(c.dataNascimento, 'dd/MM/yyyy') : '-'}">-</td>
+                        <td><span class="badge" th:text="${c.tag != null ? c.tag : 'Varejo'}">Tag</span></td>
+                        <td><a class="botao secundario" style="font-size:0.75rem; padding:4px 8px;" th:href="@{'/clientes/' + ${c.id}}">Ver Ficha</a></td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
-            <div>
-                <label for="filtroTipoPessoa">Tipo</label>
-                <select id="filtroTipoPessoa"><option value="">Todos</option></select>
+        </section>
+    </div>
+
+    <!-- ABA 2: PESSOA JURÍDICA (PJ) -->
+    <div id="tab-pj" class="tab-conteudo">
+        <section class="card">
+            <h2>Filtrar Clientes PJ</h2>
+            <div class="filtros">
+                <div>
+                    <label for="buscaPj">Buscar Razão Social/CNPJ</label>
+                    <input type="text" id="buscaPj" placeholder="Razão social, Fantasia ou CNPJ" oninput="filtrarPj()">
+                </div>
+                <div>
+                    <label for="iePj">Inscrição Estadual</label>
+                    <input type="text" id="iePj" placeholder="IE" oninput="filtrarPj()">
+                </div>
             </div>
-            <div>
-                <label for="filtroSegmento">Segmento</label>
-                <select id="filtroSegmento"><option value="">Todos</option></select>
+            <div class="tabela-scroll">
+                <table id="tabelaPj">
+                    <thead>
+                    <tr>
+                        <th>Razão Social / Nome Fantasia</th>
+                        <th>CNPJ</th>
+                        <th>Inscrição Estadual</th>
+                        <th>Telefone / Contato</th>
+                        <th>Empresa Vinculada</th>
+                        <th>Ações</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="c : ${clientes}" th:if="${c.tipoPessoa == 'PJ' or c.tipoPessoa == 'Juridica' or c.cnpj != null}"
+                        th:data-nome="${#strings.toLowerCase(c.nome + ' ' + (c.razaoSocial != null ? c.razaoSocial : '') + ' ' + (c.nomeFantasia != null ? c.nomeFantasia : ''))}"
+                        th:data-cnpj="${c.cnpj != null ? c.cnpj : ''}"
+                        th:data-ie="${c.inscricaoEstadual != null ? c.inscricaoEstadual : ''}">
+                        <td>
+                            <a th:href="@{'/clientes/' + ${c.id}}" th:text="${c.razaoSocial != null ? c.razaoSocial : c.nome}" style="font-weight:600;">Razão Social</a>
+                            <div th:if="${c.nomeFantasia != null}" style="font-size:0.78rem; color:var(--text-secondary);" th:text="${c.nomeFantasia}">Fantasia</div>
+                        </td>
+                        <td th:text="${c.cnpj != null ? c.cnpj : '-'}">-</td>
+                        <td th:text="${c.inscricaoEstadual != null ? c.inscricaoEstadual : '-'}">-</td>
+                        <td th:text="${c.telefone}">-</td>
+                        <td th:text="${c.empresa != null ? c.empresa.nome : 'Direta'}">Empresa</td>
+                        <td><a class="botao secundario" style="font-size:0.75rem; padding:4px 8px;" th:href="@{'/clientes/' + ${c.id}}">Ver Ficha</a></td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
-            <div class="checagem">
-                <input type="checkbox" id="filtroAniversario">
-                <label for="filtroAniversario" style="margin:0;">Aniversariante do mês</label>
+        </section>
+    </div>
+
+    <!-- ABA 3: EMPRESAS & FROTAS -->
+    <div id="tab-empresas" class="tab-conteudo">
+        <section class="card">
+            <h2>Nova Empresa / Conta Corporativa</h2>
+            <form id="formNovaEmpresa" style="display:grid; grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1.5fr auto; gap:12px; align-items:end;">
+                <div>
+                    <label for="empNome">Nome da Empresa</label>
+                    <input type="text" id="empNome" required placeholder="Ex: Transportadora X">
+                </div>
+                <div>
+                    <label for="empCnpj">CNPJ</label>
+                    <input type="text" id="empCnpj" placeholder="00.000.000/0001-00">
+                </div>
+                <div>
+                    <label for="empSegmento">Segmento</label>
+                    <input type="text" id="empSegmento" placeholder="Frotas, B2B, Locadora">
+                </div>
+                <div>
+                    <label for="empTelefone">Telefone</label>
+                    <input type="text" id="empTelefone" placeholder="(84) 99999-0000">
+                </div>
+                <div>
+                    <label for="empEmail">E-mail</label>
+                    <input type="email" id="empEmail" placeholder="contato@empresa.com">
+                </div>
+                <div>
+                    <button type="submit" class="botao">Cadastrar Empresa</button>
+                </div>
+            </form>
+            <div id="resultadoEmpresa" class="resultado" style="margin-top:12px;"></div>
+        </section>
+
+        <section class="card">
+            <h2>Contas Corporativas Cadastradas</h2>
+            <div class="tabela-scroll">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Empresa</th>
+                        <th>CNPJ</th>
+                        <th>Segmento</th>
+                        <th>Telefone</th>
+                        <th>Email</th>
+                        <th>Contatos Vinculados</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="e : ${empresas}">
+                        <td th:text="${e.nome}" style="font-weight:600;">Nome</td>
+                        <td th:text="${e.cnpj != null ? e.cnpj : '-'}">-</td>
+                        <td th:text="${e.segmento != null ? e.segmento : 'Geral'}">-</td>
+                        <td th:text="${e.telefone != null ? e.telefone : '-'}">-</td>
+                        <td th:text="${e.email != null ? e.email : '-'}">-</td>
+                        <td>
+                            <span class="badge" th:text="${e.contatos != null ? e.contatos.size() + ' contato(s)' : '0 contatos'}">0 contatos</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
-        </div>
-        <div class="tabela-scroll">
-            <table th:unless="${clientes.isEmpty()}" id="tabelaClientes">
-                <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Telefone</th>
-                    <th>Cidade</th>
-                    <th>Tipo</th>
-                    <th>Tag</th>
-                    <th>Segmento</th>
-                    <th>Última visita</th>
-                    <th>Total gasto</th>
-                    <th>Aniversário</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="c : ${clientes}" th:with="m=${metricas.get(c.id)}"
-                    th:data-nome="${#strings.toLowerCase(c.nome)}"
-                    th:data-telefone="${c.telefone}"
-                    th:data-cidade="${c.cidade} ?: ''"
-                    th:data-tipo="${c.tipoPessoa} ?: ''"
-                    th:data-segmento="${m != null ? m.segmento.name() : 'SEM_HISTORICO'}"
-                    th:data-mes-nascimento="${c.dataNascimento != null ? c.dataNascimento.monthValue : ''}">
-                    <td><a th:href="@{'/clientes/' + ${c.id}}" th:text="${c.nome}">Nome</a></td>
-                    <td th:text="${c.telefone}">-</td>
-                    <td th:text="${c.cidade} ?: '-'">-</td>
-                    <td th:text="${c.tipoPessoa} ?: '-'">-</td>
-                    <td th:text="${c.tag}">-</td>
-                    <td>
-                        <span th:if="${m != null}" class="badge"
-                              th:classappend="'seg-' + ${#strings.toLowerCase(#strings.replace(m.segmento.name(),'_','-'))}"
-                              th:text="${m.segmento.rotulo}">Segmento</span>
-                        <span th:if="${m == null}" class="badge seg-sem-historico">Sem histórico</span>
-                    </td>
-                    <td th:text="${m != null and m.ultimaVisita != null ? #temporals.format(m.ultimaVisita, 'dd/MM/yyyy') : '-'}">-</td>
-                    <td class="numero" th:text="${m != null ? 'R$ ' + #numbers.formatDecimal(m.valorTotalGasto, 1, 'POINT', 2, 'COMMA') : '-'}">-</td>
-                    <td th:text="${c.dataNascimento != null ? #temporals.format(c.dataNascimento, 'dd/MM') : '-'}">-</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-        <p class="vazio" th:if="${clientes.isEmpty()}">Nenhum cliente cadastrado ainda. Importe pela tela de <a href="/campanhas">CRM e Campanhas</a>.</p>
-    </section>
+            <p class="vazio" th:if="${empresas.isEmpty()}">Nenhuma empresa cadastrada ainda.</p>
+        </section>
+    </div>
 </main>
 <script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
 <script>
-    const linhas = Array.from(document.querySelectorAll('#tabelaClientes tbody tr'));
-    const mesAtual = new Date().getMonth() + 1;
+    function trocarAba(aba) {
+        document.querySelectorAll('.aba-item').forEach(el => el.classList.remove('ativa'));
+        document.querySelectorAll('.tab-conteudo').forEach(el => el.classList.remove('ativo'));
 
-    function popularOpcoes(seletorId, atributo, rotulos) {
-        const valores = [...new Set(linhas.map(l => l.dataset[atributo]).filter(v => v))].sort();
-        const select = document.getElementById(seletorId);
-        valores.forEach(v => {
-            const opt = document.createElement('option');
-            opt.value = v;
-            opt.textContent = rotulos ? (rotulos[v] || v) : v;
-            select.appendChild(opt);
-        });
-    }
-    popularOpcoes('filtroCidade', 'cidade');
-    popularOpcoes('filtroTipoPessoa', 'tipo');
-    popularOpcoes('filtroSegmento', 'segmento', {
-        ATIVO: 'Ativo', EM_RISCO: 'Em risco', INATIVO: 'Inativo', SEM_HISTORICO: 'Sem histórico'
-    });
-
-    function aplicarFiltros() {
-        const busca = document.getElementById('filtroBusca').value.toLowerCase();
-        const cidade = document.getElementById('filtroCidade').value;
-        const tipo = document.getElementById('filtroTipoPessoa').value;
-        const segmento = document.getElementById('filtroSegmento').value;
-        const soAniversario = document.getElementById('filtroAniversario').checked;
-
-        let visiveis = 0;
-        linhas.forEach(l => {
-            const bateBusca = !busca || l.dataset.nome.includes(busca) || (l.dataset.telefone || '').includes(busca);
-            const bateCidade = !cidade || l.dataset.cidade === cidade;
-            const bateTipo = !tipo || l.dataset.tipo === tipo;
-            const bateSegmento = !segmento || l.dataset.segmento === segmento;
-            const bateAniversario = !soAniversario || Number(l.dataset.mesNascimento) === mesAtual;
-            const mostra = bateBusca && bateCidade && bateTipo && bateSegmento && bateAniversario;
-            l.style.display = mostra ? '' : 'none';
-            if (mostra) visiveis++;
-        });
-        document.getElementById('contagemVisivel').textContent = visiveis;
+        if (aba === 'pf') {
+            document.querySelectorAll('.aba-item')[0].classList.add('ativa');
+            document.getElementById('tab-pf').classList.add('ativo');
+        } else if (aba === 'pj') {
+            document.querySelectorAll('.aba-item')[1].classList.add('ativa');
+            document.getElementById('tab-pj').classList.add('ativo');
+        } else if (aba === 'empresas') {
+            document.querySelectorAll('.aba-item')[2].classList.add('ativa');
+            document.getElementById('tab-empresas').classList.add('ativo');
+        }
     }
 
-    ['filtroBusca', 'filtroCidade', 'filtroTipoPessoa', 'filtroSegmento', 'filtroAniversario'].forEach(id => {
-        document.getElementById(id).addEventListener('input', aplicarFiltros);
+    function filtrarPf() {
+        const busca = document.getElementById('buscaPf').value.toLowerCase();
+        const cidade = document.getElementById('cidadePf').value.toLowerCase();
+        const tag = document.getElementById('tagPf').value.toLowerCase();
+
+        document.querySelectorAll('#tabelaPf tbody tr').forEach(row => {
+            const nome = row.dataset.nome || '';
+            const cpf = row.dataset.cpf || '';
+            const tel = row.dataset.tel || '';
+            const cid = row.dataset.cidade || '';
+            const tg = row.dataset.tag || '';
+
+            const bateBusca = !busca || nome.includes(busca) || cpf.includes(busca) || tel.includes(busca);
+            const bateCidade = !cidade || cid.includes(cidade);
+            const bateTag = !tag || tg.includes(tag);
+
+            row.style.display = (bateBusca && bateCidade && bateTag) ? '' : 'none';
+        });
+    }
+
+    function filtrarPj() {
+        const busca = document.getElementById('buscaPj').value.toLowerCase();
+        const ie = document.getElementById('iePj').value.toLowerCase();
+
+        document.querySelectorAll('#tabelaPj tbody tr').forEach(row => {
+            const nome = row.dataset.nome || '';
+            const cnpj = row.dataset.cnpj || '';
+            const ieVal = row.dataset.ie || '';
+
+            const bateBusca = !busca || nome.includes(busca) || cnpj.includes(busca);
+            const bateIe = !ie || ieVal.includes(ie);
+
+            row.style.display = (bateBusca && bateIe) ? '' : 'none';
+        });
+    }
+
+    document.getElementById('formNovaEmpresa').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const caixa = document.getElementById('resultadoEmpresa');
+        const corpo = {
+            nome: document.getElementById('empNome').value,
+            cnpj: document.getElementById('empCnpj').value,
+            segmento: document.getElementById('empSegmento').value,
+            telefone: document.getElementById('empTelefone').value,
+            email: document.getElementById('empEmail').value
+        };
+        try {
+            const res = await fetch('/api/empresas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(corpo)
+            });
+            if (res.ok) {
+                caixa.className = 'resultado ok';
+                caixa.textContent = 'Empresa cadastrada com sucesso! Recarregando...';
+                setTimeout(() => window.location.reload(), 800);
+            } else {
+                caixa.className = 'resultado erro';
+                caixa.textContent = 'Erro ao cadastrar empresa (HTTP ' + res.status + ')';
+            }
+        } catch (err) {
+            caixa.className = 'resultado erro';
+            caixa.textContent = 'Erro de conexão: ' + err.message;
+        }
     });
 </script>
 </body>

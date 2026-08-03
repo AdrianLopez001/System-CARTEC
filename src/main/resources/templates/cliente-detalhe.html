@@ -73,17 +73,6 @@
             </section>
 
             <section class="card">
-                <h2>Negociações</h2>
-                <div th:each="n : ${negociacoes}" style="margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid var(--grid);">
-                    <div th:text="${n.titulo}">Título</div>
-                    <span class="badge" th:text="${n.estagio.rotulo}">Estágio</span>
-                    <span th:if="${n.valor != null}" th:text="' · R$ ' + ${#numbers.formatDecimal(n.valor, 1, 'POINT', 2, 'COMMA')}"></span>
-                </div>
-                <p class="vazio" th:if="${negociacoes.isEmpty()}">Nenhuma negociação ainda.</p>
-                <a class="botao" href="/negociacoes">Nova negociação →</a>
-            </section>
-
-            <section class="card">
                 <h2>Tarefas</h2>
                 <div th:each="t : ${tarefas}" style="margin-bottom:8px;">
                     <span class="badge" th:classappend="${t.concluida} ? 'concluida' : ''" th:text="${t.concluida} ? 'Feita' : 'Pendente'">Status</span>

@@ -188,17 +188,102 @@ async function iniciarWhatsApp() {
     logger: require("pino")({ level: "silent" }),
   });
 
-  // QR Code
+  // HTTP Management Server on Port 3001 for ERP integration
+  const http = require("http");
+  const BOT_PORT = process.env.BOT_PORT || 3001;
+
+  let botEstado = "DESCONECTADO";
+  let qrCodeAtual = null;
+  let numeroConectado = null;
+
+  const server = http.createServer(async (req, res) => {
+    // CORS headers
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+
+    if (req.method === "OPTIONS") {
+      res.writeHead(204);
+      res.end();
+      return;
+    }
+
+    const url = req.url;
+
+    if (req.method === "GET" && url === "/status") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({
+        status: botEstado,
+        qrRaw: qrCodeAtual,
+        qrCodeUrl: qrCodeAtual ? `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(qrCodeAtual)}` : null,
+        phone: numeroConectado
+      }));
+      return;
+    }
+
+    if (req.method === "POST" && url === "/send") {
+      let body = "";
+      req.on("data", chunk => { body += chunk.toString(); });
+      req.on("end", async () => {
+        try {
+          const data = JSON.parse(body || "{}");
+          if (!data.telefone || !data.texto) {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            res.end(JSON.stringify({ erro: "Campos telefone e texto são obrigatórios." }));
+            return;
+          }
+          let jid = data.telefone.replace(/\D/g, "");
+          if (!jid.endsWith("@s.whatsapp.net")) {
+            jid = jid + "@s.whatsapp.net";
+          }
+          await sock.sendMessage(jid, { text: data.texto });
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ ok: true, mensagem: "Mensagem enviada com sucesso!" }));
+        } catch (err) {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ ok: false, erro: err.message }));
+        }
+      });
+      return;
+    }
+
+    if (req.method === "POST" && url === "/disconnect") {
+      try {
+        await sock.logout();
+        botEstado = "DESCONECTADO";
+        qrCodeAtual = null;
+        numeroConectado = null;
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: true, mensagem: "Desconectado com sucesso." }));
+      } catch (err) {
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ ok: false, erro: err.message }));
+      }
+      return;
+    }
+
+    res.writeHead(404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ erro: "Rota não encontrada" }));
+  });
+
+  server.listen(BOT_PORT, () => {
+    console.log(`\n🚀 API de integração do Bot WhatsApp rodando na porta ${BOT_PORT}`);
+  });
+
+  // Connection status event updates
   sock.ev.on("connection.update", ({ connection, lastDisconnect, qr }) => {
     if (qr) {
-      console.log(
-        `\n📷 Escaneie o QR Code abaixo com o WhatsApp da Cartec:\n`
-      );
+      botEstado = "AGUARDANDO_QR";
+      qrCodeAtual = qr;
+      console.log(`\n📷 Escaneie o QR Code no terminal ou no ERP:\n`);
       qrcode.generate(qr, { small: true });
       console.log(`\n⏳ Aguardando leitura...\n`);
     }
 
     if (connection === "close") {
+      botEstado = "DESCONECTADO";
+      qrCodeAtual = null;
+      numeroConectado = null;
       const codigo = lastDisconnect?.error?.output?.statusCode;
       const reconectar = codigo !== DisconnectReason.loggedOut;
 
@@ -206,17 +291,15 @@ async function iniciarWhatsApp() {
         console.log(`\n🔄 Reconectando...`);
         iniciarWhatsApp();
       } else {
-        console.log(
-          `\n🚪 Desconectado. Delete a pasta 'sessao' e reinicie para conectar novamente.`
-        );
+        console.log(`\n🚪 Desconectado pelo usuário.`);
       }
     }
 
     if (connection === "open") {
+      botEstado = "CONECTADO";
+      qrCodeAtual = null;
+      numeroConectado = sock.user ? sock.user.id.split(":")[0] : "WhatsApp";
       console.log(`\n✅ ${BOLD}WhatsApp conectado com sucesso!${RESET}`);
-      console.log(
-        `   Aguardando mensagens para classificar...\n`
-      );
     }
   });
 
@@ -228,12 +311,11 @@ async function iniciarWhatsApp() {
 
     for (const msg of messages) {
       if (!msg.message) continue;
-      if (msg.key.fromMe) continue; // Ignora mensagens enviadas por você
+      if (msg.key.fromMe) continue;
 
       const telefone = msg.key.remoteJid;
       if (!telefone) continue;
 
-      // Extrair texto da mensagem
       const texto =
         msg.message?.conversation ||
         msg.message?.extendedTextMessage?.text ||
@@ -243,7 +325,6 @@ async function iniciarWhatsApp() {
 
       const agora = new Date().toLocaleTimeString("pt-BR");
 
-      // Adicionar ao histórico
       if (!historicoConversas[telefone]) {
         historicoConversas[telefone] = [];
       }
@@ -254,12 +335,8 @@ async function iniciarWhatsApp() {
         texto: texto,
       });
 
-      console.log(
-        `\n💬 [${agora}] ${formatarTelefone(telefone)}: "${texto}"`
-      );
-      console.log(`   🤔 Classificando com IA...`);
+      console.log(`\n💬 [${agora}] ${formatarTelefone(telefone)}: "${texto}"`);
 
-      // Classificar conversa completa
       const classificacao = await classificarConversa(
         telefone,
         historicoConversas[telefone]

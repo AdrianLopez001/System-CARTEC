@@ -13,7 +13,7 @@ public class ConfiguracaoService {
 
     private final TarefaRepository tarefaRepository;
     private final NotaRepository notaRepository;
-    private final NegociacaoRepository negociacaoRepository;
+    private final EventoRepository eventoRepository;
     private final ItemServicoRepository itemServicoRepository;
     private final OrdemServicoRepository ordemServicoRepository;
     private final CampanhaRepository campanhaRepository;
@@ -27,7 +27,7 @@ public class ConfiguracaoService {
 
     public ConfiguracaoService(TarefaRepository tarefaRepository,
                                 NotaRepository notaRepository,
-                                NegociacaoRepository negociacaoRepository,
+                                EventoRepository eventoRepository,
                                 ItemServicoRepository itemServicoRepository,
                                 OrdemServicoRepository ordemServicoRepository,
                                 CampanhaRepository campanhaRepository,
@@ -40,7 +40,7 @@ public class ConfiguracaoService {
                                 DemoDataService demoDataService) {
         this.tarefaRepository = tarefaRepository;
         this.notaRepository = notaRepository;
-        this.negociacaoRepository = negociacaoRepository;
+        this.eventoRepository = eventoRepository;
         this.itemServicoRepository = itemServicoRepository;
         this.ordemServicoRepository = ordemServicoRepository;
         this.campanhaRepository = campanhaRepository;
@@ -59,9 +59,9 @@ public class ConfiguracaoService {
      */
     @Transactional
     public void limparTudo() {
+        eventoRepository.deleteAll();
         tarefaRepository.deleteAll();
         notaRepository.deleteAll();
-        negociacaoRepository.deleteAll();
         itemServicoRepository.deleteAll();
         ordemServicoRepository.deleteAll();
         campanhaRepository.deleteAll();

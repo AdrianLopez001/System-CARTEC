@@ -3,7 +3,6 @@ package com.cartec.sistema.controller;
 import com.cartec.sistema.model.Cliente;
 import com.cartec.sistema.repository.ClienteRepository;
 import com.cartec.sistema.repository.EmpresaRepository;
-import com.cartec.sistema.repository.NegociacaoRepository;
 import com.cartec.sistema.repository.TarefaRepository;
 import com.cartec.sistema.service.ClienteSegmentacaoService;
 import com.cartec.sistema.service.TimelineService;
@@ -23,20 +22,17 @@ public class ClientePageController {
 
     private final ClienteRepository clienteRepository;
     private final EmpresaRepository empresaRepository;
-    private final NegociacaoRepository negociacaoRepository;
     private final TarefaRepository tarefaRepository;
     private final TimelineService timelineService;
     private final ClienteSegmentacaoService segmentacaoService;
 
     public ClientePageController(ClienteRepository clienteRepository,
                                   EmpresaRepository empresaRepository,
-                                  NegociacaoRepository negociacaoRepository,
                                   TarefaRepository tarefaRepository,
                                   TimelineService timelineService,
                                   ClienteSegmentacaoService segmentacaoService) {
         this.clienteRepository = clienteRepository;
         this.empresaRepository = empresaRepository;
-        this.negociacaoRepository = negociacaoRepository;
         this.tarefaRepository = tarefaRepository;
         this.timelineService = timelineService;
         this.segmentacaoService = segmentacaoService;
@@ -45,6 +41,7 @@ public class ClientePageController {
     @GetMapping("/clientes")
     public String lista(Model model) {
         model.addAttribute("clientes", clienteRepository.findAll());
+        model.addAttribute("empresas", empresaRepository.findAll());
         model.addAttribute("metricas", segmentacaoService.calcularParaTodos());
         return "clientes";
     }
@@ -56,7 +53,6 @@ public class ClientePageController {
 
         model.addAttribute("cliente", cliente);
         model.addAttribute("empresas", empresaRepository.findAll());
-        model.addAttribute("negociacoes", negociacaoRepository.findByClienteIdOrderByDataCriacaoDesc(id));
         model.addAttribute("tarefas", tarefaRepository.findByClienteIdOrderByDataVencimentoAsc(id));
         model.addAttribute("timeline", timelineService.listar(id));
         model.addAttribute("metricas", segmentacaoService.calcularPara(cliente));

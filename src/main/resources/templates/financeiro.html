@@ -44,13 +44,13 @@
         <div class="tile">
             <div class="label">Margem bruta média (últimos meses)</div>
             <div class="value" th:if="${resumo.mediaUltimosMeses.margemMedia != null}"
-                 th:text="${#numbers.formatDecimal(resumo.mediaUltimosMeses.margemMedia, 1, 1, 'COMMA') + '%'}">0%</div>
+                 th:text="${#numbers.formatDecimal(resumo.mediaUltimosMeses.margemMedia, 1, 'POINT', 1, 'COMMA') + '%'}">0%</div>
             <div class="value dash" th:if="${resumo.mediaUltimosMeses.margemMedia == null}">—</div>
         </div>
         <div class="tile">
             <div class="label">Taxa de realização média</div>
             <div class="value" th:if="${resumo.mediaUltimosMeses.realizacaoMedia != null}"
-                 th:text="${#numbers.formatDecimal(resumo.mediaUltimosMeses.realizacaoMedia, 1, 1, 'COMMA') + '%'}">0%</div>
+                 th:text="${#numbers.formatDecimal(resumo.mediaUltimosMeses.realizacaoMedia, 1, 'POINT', 1, 'COMMA') + '%'}">0%</div>
             <div class="value dash" th:if="${resumo.mediaUltimosMeses.realizacaoMedia == null}">—</div>
         </div>
     </section>
@@ -90,20 +90,20 @@
                     <td class="numero" th:text="${'R$ ' + #numbers.formatDecimal(l.finalizado, 1, 'POINT', 2, 'COMMA')}">-</td>
                     <td class="numero" th:if="${l.percentualRealizado != null}"
                         th:classappend="${l.percentualRealizado.doubleValue() >= 90} ? 'positivo' : (${l.percentualRealizado.doubleValue() < 60} ? 'negativo' : '')"
-                        th:text="${#numbers.formatDecimal(l.percentualRealizado, 1, 1, 'COMMA') + '%'}">-</td>
+                        th:text="${#numbers.formatDecimal(l.percentualRealizado, 1, 'POINT', 1, 'COMMA') + '%'}">-</td>
                     <td class="numero" th:if="${l.percentualRealizado == null}">-</td>
                     <td class="numero" th:if="${l.variacaoMoMPercentual != null}"
                         th:classappend="${l.variacaoMoMPercentual.doubleValue() >= 0} ? 'positivo' : 'negativo'"
-                        th:text="${(l.variacaoMoMPercentual.doubleValue() >= 0 ? '+' : '') + #numbers.formatDecimal(l.variacaoMoMPercentual, 1, 1, 'COMMA') + '%'}">-</td>
+                        th:text="${(l.variacaoMoMPercentual.doubleValue() >= 0 ? '+' : '') + #numbers.formatDecimal(l.variacaoMoMPercentual, 1, 'POINT', 1, 'COMMA') + '%'}">-</td>
                     <td class="numero" th:if="${l.variacaoMoMPercentual == null}">-</td>
                     <td class="numero" th:text="${l.custo != null ? 'R$ ' + #numbers.formatDecimal(l.custo, 1, 'POINT', 2, 'COMMA') : '-'}">-</td>
-                    <td class="numero" th:text="${l.percentualCusto != null ? #numbers.formatDecimal(l.percentualCusto, 1, 0, 'COMMA') + '%' : '-'}">-</td>
+                    <td class="numero" th:text="${l.percentualCusto != null ? #numbers.formatDecimal(l.percentualCusto, 1, 'POINT', 0, 'COMMA') + '%' : '-'}">-</td>
                     <td class="numero" th:text="${l.desconto != null ? 'R$ ' + #numbers.formatDecimal(l.desconto, 1, 'POINT', 2, 'COMMA') : '-'}">-</td>
-                    <td class="numero" th:text="${l.percentualDesconto != null ? #numbers.formatDecimal(l.percentualDesconto, 1, 0, 'COMMA') + '%' : '-'}">-</td>
+                    <td class="numero" th:text="${l.percentualDesconto != null ? #numbers.formatDecimal(l.percentualDesconto, 1, 'POINT', 0, 'COMMA') + '%' : '-'}">-</td>
                     <td class="numero" th:text="${l.lucroBruto != null ? 'R$ ' + #numbers.formatDecimal(l.lucroBruto, 1, 'POINT', 2, 'COMMA') : '-'}">-</td>
-                    <td class="numero" th:text="${l.percentualLucroBruto != null ? #numbers.formatDecimal(l.percentualLucroBruto, 1, 0, 'COMMA') + '%' : '-'}">-</td>
-                    <td class="numero" th:text="${l.percentualProduto != null ? #numbers.formatDecimal(l.percentualProduto, 1, 0, 'COMMA') + '%' : '-'}">-</td>
-                    <td class="numero" th:text="${l.percentualServico != null ? #numbers.formatDecimal(l.percentualServico, 1, 0, 'COMMA') + '%' : '-'}">-</td>
+                    <td class="numero" th:text="${l.percentualLucroBruto != null ? #numbers.formatDecimal(l.percentualLucroBruto, 1, 'POINT', 0, 'COMMA') + '%' : '-'}">-</td>
+                    <td class="numero" th:text="${l.percentualProduto != null ? #numbers.formatDecimal(l.percentualProduto, 1, 'POINT', 0, 'COMMA') + '%' : '-'}">-</td>
+                    <td class="numero" th:text="${l.percentualServico != null ? #numbers.formatDecimal(l.percentualServico, 1, 'POINT', 0, 'COMMA') + '%' : '-'}">-</td>
                     <td class="numero" th:text="${l.ticketMedio != null ? 'R$ ' + #numbers.formatDecimal(l.ticketMedio, 1, 'POINT', 2, 'COMMA') : '-'}">-</td>
                     <td class="numero" th:text="${l.qtdOs != null ? l.qtdOs : '-'}">-</td>
                 </tr>

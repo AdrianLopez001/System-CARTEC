@@ -2,62 +2,206 @@
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Cartec — WhatsApp</title>
+    <title>Cartec — Integração WhatsApp Web</title>
     <style th:replace="~{fragments/estilos :: base}"></style>
+    <style>
+        .painel-conexao { display: flex; gap: 20px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+        .qr-box { background: #ffffff; padding: 16px; border-radius: 8px; text-align: center; border: 1px solid var(--grid); }
+        .qr-box img { width: 220px; height: 220px; display: block; margin: 0 auto 10px auto; }
+        .status-badge { font-weight: 700; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; }
+        .status-CONECTADO { background: #d1fae5; color: #065f46; }
+        .status-AGUARDANDO_QR { background: #fef3c7; color: #92400e; }
+        .status-DESCONECTADO { background: #fee2e2; color: #991b1b; }
+        .grid-whatsapp { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; margin-top: 20px; }
+        @media (max-width: 850px) { .grid-whatsapp { grid-template-columns: 1fr; } }
+    </style>
 </head>
 <body>
 <header th:replace="~{fragments/nav :: topbar}"></header>
 <div class="page-header">
     <div>
-        <h1>WhatsApp</h1>
-        <p th:text="${mensagens.size()} + ' conversa(s) classificadas pela IA'">0 conversas</p>
+        <h1>Central WhatsApp & Atendimento</h1>
+        <p>Conexão via QR Code, sincronização de conversas e disparo direto pelo ERP</p>
     </div>
 </div>
 <main>
+    <!-- PAINEL DE CONEXÃO E QR CODE -->
     <section class="card">
-        <h2>Caixa de entrada</h2>
-        <p class="descricao">
-            Classificação automática (intenção, urgência, consultor sugerido) feita pelo
-            <code>whatsapp-bot</code> — ver <code>whatsapp-bot/README.md</code> no repositório pra
-            rodar. "Abrir no WhatsApp" só monta o link wa.me pra você continuar a conversa manualmente
-            — nada é enviado sozinho.
-        </p>
-        <div class="caixa-entrada">
-            <div class="msg-item" th:each="m : ${mensagens}" th:classappend="${m.lida} ? 'lida' : ''" th:id="'msg-' + ${m.id}">
-                <div class="topo">
-                    <span class="quem">
-                        <a th:if="${m.cliente != null}" th:href="@{'/clientes/' + ${m.cliente.id}}" th:text="${m.cliente.nome}">Cliente</a>
-                        <span th:if="${m.cliente == null}" th:text="${m.clienteNomeIa} + ' (não cadastrado)'">Nome (não cadastrado)</span>
-                        <span style="color:var(--muted); font-weight:400;" th:text="'· ' + ${m.telefone}">telefone</span>
+        <div class="painel-conexao">
+            <div>
+                <h2 style="margin-top:0;">Status da Conexão WhatsApp</h2>
+                <div style="margin-bottom:12px;">
+                    <span id="badgeStatus" class="status-badge status-DESCONECTADO">
+                        <span id="pontoStatus" style="width:10px; height:10px; border-radius:50%; background:currentColor;"></span>
+                        <span id="textoStatus">Verificando conexão...</span>
                     </span>
-                    <span class="quando" th:text="${#temporals.format(m.dataRecebimento, 'dd/MM/yyyy HH:mm')}">01/01/2026 00:00</span>
                 </div>
-                <div>
-                    <span class="badge" th:if="${m.intencao != null}" th:text="${m.intencao}">intenção</span>
-                    <span class="badge seg-inativo" th:if="${m.urgencia == 'urgente'}" th:text="'urgência: ' + ${m.urgencia}">urgência</span>
-                    <span class="badge seg-em-risco" th:if="${m.urgencia == 'normal'}" th:text="'urgência: ' + ${m.urgencia}">urgência</span>
-                    <span class="badge seg-ativo" th:if="${m.urgencia == 'baixa'}" th:text="'urgência: ' + ${m.urgencia}">urgência</span>
-                    <span class="badge" th:if="${m.consultorSugerido != null}" style="background:transparent; border:1px solid var(--grid); color:var(--text-secondary);" th:text="'consultor: ' + ${m.consultorSugerido}">consultor</span>
-                    <span th:if="${m.veiculo != null and m.veiculo != 'não mencionado'}" style="font-size:0.8rem; color:var(--text-secondary);" th:text="'· ' + ${m.veiculo}">veículo</span>
-                </div>
-                <p class="resumo" th:text="${m.resumo}">Resumo da conversa</p>
-                <p style="font-size:0.78rem; color:var(--muted); margin:0;" th:text="${m.totalMensagens} + ' mensagem(ns) na conversa'">0 mensagens</p>
-                <div class="acoes">
-                    <a class="botao" th:href="'https://wa.me/' + ${m.telefone}" target="_blank" rel="noopener">Abrir no WhatsApp →</a>
-                    <button th:if="${m.cliente == null}" class="secundario" type="button"
-                            th:attr="onclick=|criarCliente(${m.id}, '${m.clienteNomeIa}', '${m.telefone}')|">Criar cliente</button>
-                    <button th:unless="${m.lida}" class="secundario" type="button" th:attr="onclick=|marcarLida(${m.id})|">Marcar como lida</button>
+                <p id="infoConexao" class="descricao" style="margin-bottom:12px;">
+                    Inicie o serviço de bot em <code>whatsapp-bot/</code> para conectar a conta oficial da Cartec.
+                </p>
+                <div id="btnAcoesConexao">
+                    <button type="button" class="secundario" onclick="desconectarBot()" id="btnDesconectar" style="display:none;">Desconectar Conta</button>
+                    <button type="button" class="botao" onclick="verificarStatus()" id="btnAtualizar">Atualizar Status 🔄</button>
                 </div>
             </div>
+
+            <!-- CONTAINER QR CODE -->
+            <div id="containerQr" class="qr-box" style="display:none;">
+                <img id="imgQrCode" src="" alt="QR Code WhatsApp">
+                <span style="font-size:0.8rem; color:#475569; display:block;">Escaneie com a câmera do seu WhatsApp</span>
+            </div>
         </div>
-        <p class="vazio" th:if="${mensagens.isEmpty()}">
-            Nenhuma mensagem classificada ainda. Rode o whatsapp-bot (<code>whatsapp-bot/README.md</code>)
-            pra começar a receber aqui.
-        </p>
     </section>
+
+    <!-- ÁREA DE ATENDIMENTO E MENSAGENS -->
+    <div class="grid-whatsapp">
+        <section class="card">
+            <h2>Conversas Classificadas (IA)</h2>
+            <p class="descricao">Mensagens recebidas e analisadas automaticamente pelo assistente IA.</p>
+            <div class="caixa-entrada">
+                <div class="msg-item" th:each="m : ${mensagens}" th:classappend="${m.lida} ? 'lida' : ''" th:id="'msg-' + ${m.id}">
+                    <div class="topo">
+                        <span class="quem">
+                            <a th:if="${m.cliente != null}" th:href="@{'/clientes/' + ${m.cliente.id}}" th:text="${m.cliente.nome}" style="font-weight:600;">Cliente</a>
+                            <span th:if="${m.cliente == null}" th:text="${m.clienteNomeIa} + ' (não cadastrado)'">Nome (não cadastrado)</span>
+                            <span style="color:var(--muted); font-weight:400;" th:text="'· ' + ${m.telefone}">telefone</span>
+                        </span>
+                        <span class="quando" th:text="${#temporals.format(m.dataRecebimento, 'dd/MM/yyyy HH:mm')}">01/01/2026 00:00</span>
+                    </div>
+                    <div style="margin:6px 0;">
+                        <span class="badge" th:if="${m.intencao != null}" th:text="${m.intencao}">intenção</span>
+                        <span class="badge seg-inativo" th:if="${m.urgencia == 'urgente'}" th:text="'urgência: ' + ${m.urgencia}">urgência</span>
+                        <span class="badge seg-em-risco" th:if="${m.urgencia == 'normal'}" th:text="'urgência: ' + ${m.urgencia}">urgência</span>
+                        <span class="badge seg-ativo" th:if="${m.urgencia == 'baixa'}" th:text="'urgência: ' + ${m.urgencia}">urgência</span>
+                        <span class="badge" th:if="${m.consultorSugerido != null}" style="background:transparent; border:1px solid var(--grid); color:var(--text-secondary);" th:text="'consultor: ' + ${m.consultorSugerido}">consultor</span>
+                    </div>
+                    <p class="resumo" th:text="${m.resumo}" style="margin:4px 0;">Resumo da conversa</p>
+                    <div class="acoes" style="margin-top:10px;">
+                        <button type="button" class="botao" th:attr="onclick=|prepararEnvioDirecto('${m.telefone}', '${m.cliente != null ? m.cliente.nome : m.clienteNomeIa}')|">Responder pelo ERP 💬</button>
+                        <a class="botao secundario" th:href="'https://wa.me/' + ${m.telefone}" target="_blank" rel="noopener">WhatsApp Web ↗</a>
+                        <button th:if="${m.cliente == null}" class="secundario" type="button" th:attr="onclick=|criarCliente(${m.id}, '${m.clienteNomeIa}', '${m.telefone}')|">Cadastrar Cliente</button>
+                        <button th:unless="${m.lida}" class="secundario" type="button" th:attr="onclick=|marcarLida(${m.id})|">Marcar Lida</button>
+                    </div>
+                </div>
+            </div>
+            <p class="vazio" th:if="${mensagens.isEmpty()}">
+                Nenhuma conversa classificada até o momento.
+            </p>
+        </section>
+
+        <!-- CAIXA DE ENVIO DIRETO DE MENSAGENS -->
+        <section class="card">
+            <h2>Enviar Mensagem Direta</h2>
+            <p class="descricao">Envie mensagens diretamente pelo WhatsApp conectado da oficina.</p>
+            <form id="formEnvioDireto">
+                <div style="margin-bottom:12px;">
+                    <label for="destinatarioTelefone">Telefone do Destinatário</label>
+                    <input type="text" id="destinatarioTelefone" required placeholder="Ex: 5584999990000" style="width:100%; padding:8px; border:1px solid var(--grid); border-radius:4px;">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label for="destinatarioNome">Nome / Referência</label>
+                    <input type="text" id="destinatarioNome" placeholder="Nome do contato (opcional)" style="width:100%; padding:8px; border:1px solid var(--grid); border-radius:4px;">
+                </div>
+                <div style="margin-bottom:12px;">
+                    <label for="mensagemTexto">Texto da Mensagem</label>
+                    <textarea id="mensagemTexto" required rows="5" placeholder="Digite sua mensagem aqui..." style="width:100%; padding:8px; border:1px solid var(--grid); border-radius:4px; font-family:inherit;"></textarea>
+                </div>
+                <button type="submit" class="botao" style="width:100%;">Enviar Mensagem via WhatsApp 🚀</button>
+            </form>
+            <div id="resultadoEnvio" class="resultado" style="margin-top:12px;"></div>
+        </section>
+    </div>
 </main>
+
 <script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
 <script>
+    let intervalId = null;
+
+    async function verificarStatus() {
+        try {
+            const res = await fetch('/api/whatsapp/status');
+            const data = await res.json();
+
+            const badge = document.getElementById('badgeStatus');
+            const texto = document.getElementById('textoStatus');
+            const info = document.getElementById('infoConexao');
+            const containerQr = document.getElementById('containerQr');
+            const imgQr = document.getElementById('imgQrCode');
+            const btnDesconectar = document.getElementById('btnDesconectar');
+
+            badge.className = 'status-badge status-' + data.status;
+
+            if (data.status === 'CONECTADO') {
+                texto.textContent = 'CONECTADO (' + (data.phone || 'WhatsApp Oficial') + ')';
+                info.textContent = 'A conta do WhatsApp da Cartec está ativa e pronta para enviar e receber mensagens.';
+                containerQr.style.display = 'none';
+                btnDesconectar.style.display = 'inline-block';
+            } else if (data.status === 'AGUARDANDO_QR') {
+                texto.textContent = 'AGUARDANDO LEITURA DO QR CODE';
+                info.textContent = 'Abra o WhatsApp no celular > Aparelhos Conectados > Conectar um Aparelho e escaneie o código ao lado.';
+                btnDesconectar.style.display = 'none';
+                if (data.qrCodeUrl) {
+                    imgQr.src = data.qrCodeUrl;
+                    containerQr.style.display = 'block';
+                }
+            } else {
+                texto.textContent = 'DESCONECTADO';
+                info.textContent = 'O bot do WhatsApp não está conectado. Inicie o script whatsapp-bot (node index.js) no terminal para gerar o QR Code.';
+                containerQr.style.display = 'none';
+                btnDesconectar.style.display = 'none';
+            }
+        } catch (err) {
+            console.error('Erro ao verificar status do bot WhatsApp:', err);
+        }
+    }
+
+    async function desconectarBot() {
+        if (!confirm('Deseja realmente desconectar a conta do WhatsApp?')) return;
+        try {
+            await fetch('/api/whatsapp/desconectar', { method: 'POST' });
+            alert('Solicitação de desconexão enviada.');
+            verificarStatus();
+        } catch (err) {
+            alert('Erro ao desconectar: ' + err.message);
+        }
+    }
+
+    function prepararEnvioDirecto(telefone, nome) {
+        document.getElementById('destinatarioTelefone').value = telefone.replace(/\D/g, '');
+        document.getElementById('destinatarioNome').value = nome || '';
+        document.getElementById('mensagemTexto').focus();
+    }
+
+    document.getElementById('formEnvioDireto').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const caixa = document.getElementById('resultadoEnvio');
+        const tel = document.getElementById('destinatarioTelefone').value;
+        const msg = document.getElementById('mensagemTexto').value;
+
+        caixa.className = 'resultado';
+        caixa.textContent = 'Enviando...';
+
+        try {
+            const res = await fetch('/api/whatsapp/enviar-mensagem', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ telefone: tel, texto: msg })
+            });
+            const data = await res.json();
+            if (res.ok && data.ok) {
+                caixa.className = 'resultado ok';
+                caixa.textContent = 'Mensagem enviada com sucesso pelo WhatsApp!';
+                document.getElementById('mensagemTexto').value = '';
+            } else {
+                caixa.className = 'resultado erro';
+                caixa.textContent = 'Erro ao enviar: ' + (data.erro || 'Verifique se o bot está CONECTADO.');
+            }
+        } catch (err) {
+            caixa.className = 'resultado erro';
+            caixa.textContent = 'Erro de rede: ' + err.message;
+        }
+    });
+
     async function marcarLida(id) {
         await fetch('/api/whatsapp/mensagens/' + id + '/marcar-lida', { method: 'POST' });
         window.location.reload();
@@ -77,6 +221,9 @@
             alert('Erro ao criar cliente (HTTP ' + resposta.status + ')');
         }
     }
+
+    verificarStatus();
+    intervalId = setInterval(verificarStatus, 3000);
 </script>
 </body>
 </html>
