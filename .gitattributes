@@ -1,0 +1,6 @@
+# Scripts shell precisam de LF sempre, mesmo em checkout no Windows -
+# CRLF quebra o shebang (#!/bin/sh) dentro de containers Linux no build
+# Docker (ver Dockerfile). Sem isso, "core.autocrlf=true" no Windows
+# converte pra CRLF no checkout e o build falha com "mvnw: not found".
+mvnw text eol=lf
+*.sh text eol=lf

@@ -1,15 +1,22 @@
 package com.cartec.sistema.controller;
 
-import com.cartec.sistema.dto.ClassificacaoWhatsappRequest;
-import com.cartec.sistema.model.MensagemWhatsapp;
-import com.cartec.sistema.repository.MensagemWhatsappRepository;
-import com.cartec.sistema.service.WhatsappMensagemService;
+import com.cartec.sistema.dto.ClassificacaoManualRequest;
+import com.cartec.sistema.dto.MensagemChatRequest;
+import com.cartec.sistema.model.ConversaWhatsapp;
+import com.cartec.sistema.model.MensagemChat;
+import com.cartec.sistema.repository.ConversaWhatsappRepository;
+import com.cartec.sistema.repository.MensagemChatRepository;
+import com.cartec.sistema.service.ConversaWhatsappService;
+import com.cartec.sistema.service.MensagemChatService;
+import com.cartec.sistema.service.WhatsappSseService;
+import com.cartec.sistema.util.PhoneUtils;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.HashMap;
 import java.util.List;
@@ -19,8 +26,11 @@ import java.util.Map;
 @RequestMapping("/api/whatsapp")
 public class WhatsappController {
 
-    private final WhatsappMensagemService whatsappMensagemService;
-    private final MensagemWhatsappRepository mensagemRepository;
+    private final MensagemChatService mensagemChatService;
+    private final ConversaWhatsappService conversaWhatsappService;
+    private final ConversaWhatsappRepository conversaRepository;
+    private final MensagemChatRepository mensagemChatRepository;
+    private final WhatsappSseService sseService;
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${whatsapp.bot.token:}")
@@ -29,24 +39,50 @@ public class WhatsappController {
     @Value("${whatsapp.bot.url:http://localhost:3001}")
     private String botUrl;
 
-    public WhatsappController(WhatsappMensagemService whatsappMensagemService, MensagemWhatsappRepository mensagemRepository) {
-        this.whatsappMensagemService = whatsappMensagemService;
-        this.mensagemRepository = mensagemRepository;
+    public WhatsappController(MensagemChatService mensagemChatService,
+                               ConversaWhatsappService conversaWhatsappService,
+                               ConversaWhatsappRepository conversaRepository,
+                               MensagemChatRepository mensagemChatRepository,
+                               WhatsappSseService sseService) {
+        this.mensagemChatService = mensagemChatService;
+        this.conversaWhatsappService = conversaWhatsappService;
+        this.conversaRepository = conversaRepository;
+        this.mensagemChatRepository = mensagemChatRepository;
+        this.sseService = sseService;
     }
 
-    @PostMapping("/mensagens")
+    @PostMapping("/mensagens/chat")
     @ResponseStatus(HttpStatus.CREATED)
-    public MensagemWhatsapp receber(@Valid @RequestBody ClassificacaoWhatsappRequest requisicao,
-                                     @RequestHeader(value = "X-Whatsapp-Bot-Token", required = false) String token) {
-        if (tokenEsperado != null && !tokenEsperado.isBlank() && !tokenEsperado.equals(token)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token invalido");
-        }
-        return whatsappMensagemService.registrar(requisicao);
+    public MensagemChat receberMensagem(@Valid @RequestBody MensagemChatRequest requisicao,
+                                         @RequestHeader(value = "X-Whatsapp-Bot-Token", required = false) String token) {
+        validarToken(token);
+        return mensagemChatService.registrar(requisicao);
     }
 
-    @GetMapping("/mensagens")
-    public List<MensagemWhatsapp> listar() {
-        return mensagemRepository.findAllByOrderByDataRecebimentoDesc();
+    @GetMapping("/conversas")
+    public List<ConversaWhatsapp> listarConversas() {
+        return conversaRepository.findAllByOrderByDataUltimaMensagemDesc();
+    }
+
+    @GetMapping("/conversas/{telefone}/mensagens")
+    public List<MensagemChat> listarMensagens(@PathVariable String telefone) {
+        return mensagemChatRepository.findByTelefoneOrderByDataHoraAsc(PhoneUtils.padronizar(telefone));
+    }
+
+    @PatchMapping("/conversas/{telefone}/classificacao")
+    public ConversaWhatsapp classificar(@PathVariable String telefone, @RequestBody ClassificacaoManualRequest requisicao) {
+        return conversaWhatsappService.classificar(telefone, requisicao);
+    }
+
+    @PostMapping("/conversas/{telefone}/marcar-lida")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void marcarLida(@PathVariable String telefone) {
+        conversaWhatsappService.marcarLida(telefone);
+    }
+
+    @GetMapping("/stream")
+    public SseEmitter stream() {
+        return sseService.subscribe();
     }
 
     @GetMapping("/status")
@@ -73,17 +109,12 @@ public class WhatsappController {
         }
 
         try {
+            // Nao persiste aqui: o bot ecoa a propria mensagem enviada via
+            // messages.upsert (fromMe=true) e manda pra /mensagens/chat,
+            // que e quem registra a mensagem de SAIDA e dispara o SSE -
+            // persistir aqui tambem duplicaria a mensagem na thread.
             Map<String, String> req = Map.of("telefone", telefone, "texto", texto);
             Map<String, Object> resposta = restTemplate.postForObject(botUrl + "/send", req, Map.class);
-
-            MensagemWhatsapp msgEnviada = new MensagemWhatsapp();
-            msgEnviada.setTelefone(telefone);
-            msgEnviada.setResumo("Mensagem enviada via ERP: " + texto);
-            msgEnviada.setDataRecebimento(java.time.LocalDateTime.now());
-            msgEnviada.setLida(true);
-            msgEnviada.setClienteNomeIa("Envio ERP");
-            mensagemRepository.save(msgEnviada);
-
             return resposta != null ? resposta : Map.of("ok", true);
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao enviar mensagem via bot: " + e.getMessage());
@@ -99,18 +130,15 @@ public class WhatsappController {
         }
     }
 
-    @PostMapping("/mensagens/{id}/marcar-lida")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void marcarLida(@PathVariable Long id) {
-        MensagemWhatsapp mensagem = mensagemRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mensagem nao encontrada"));
-        mensagem.setLida(true);
-        mensagemRepository.save(mensagem);
-    }
-
-    @DeleteMapping("/mensagens/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void remover(@PathVariable Long id) {
-        mensagemRepository.deleteById(id);
+    /**
+     * Fail-closed: sem token configurado (whatsapp.bot.token), ninguem
+     * passa. So o whatsapp-bot/ (server-to-server, fora da sessao de login)
+     * usa este token - o resto do controller fica atras do login normal
+     * (SecurityConfig).
+     */
+    private void validarToken(String token) {
+        if (tokenEsperado == null || tokenEsperado.isBlank() || !tokenEsperado.equals(token)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token invalido ou nao configurado");
+        }
     }
 }

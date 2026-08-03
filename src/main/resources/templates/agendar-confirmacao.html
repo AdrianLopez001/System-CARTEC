@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cartec — Agendamento</title>
+    <style th:replace="~{fragments/estilos :: base}"></style>
+</head>
+<body>
+<main>
+    <section class="card" style="max-width:480px; margin:40px auto; text-align:center;">
+        <div th:if="${funil.status.name() == 'APROVADO'}">
+            <h1>Agendamento confirmado!</h1>
+            <p>Te esperamos na Cartec. Qualquer dúvida, chame no WhatsApp.</p>
+        </div>
+        <div th:if="${funil.status.name() == 'REJEITADO'}">
+            <h1>Horário indisponível</h1>
+            <p>O horário escolhido já está ocupado. Nossa equipe vai entrar em contato para combinar outra data.</p>
+        </div>
+    </section>
+</main>
+</body>
+</html>

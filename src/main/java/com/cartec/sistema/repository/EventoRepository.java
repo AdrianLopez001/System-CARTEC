@@ -13,4 +13,6 @@ public interface EventoRepository extends JpaRepository<Evento, Long> {
     List<Evento> findByDemoTrue();
 
     List<Evento> findByOrdemServicoId(Long osId);
+
+    List<Evento> findByDataAndHora(LocalDate data, Integer hora);
 }

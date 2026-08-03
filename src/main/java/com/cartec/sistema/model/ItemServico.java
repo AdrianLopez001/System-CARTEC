@@ -31,14 +31,26 @@ public class ItemServico {
     @Column(name = "grupo")
     private String grupo;
 
+    @Column(name = "area")
+    private String area;
+
     @Column(name = "valor_unitario", precision = 12, scale = 2)
     private BigDecimal valorUnitario;
 
     @Column(name = "quantidade")
     private Integer quantidade;
 
+    @Column(name = "valor_total", precision = 12, scale = 2)
+    private BigDecimal valorTotal;
+
     @Column(name = "custo_unitario", precision = 12, scale = 2)
     private BigDecimal custoUnitario;
+
+    @Column(name = "custo_total", precision = 12, scale = 2)
+    private BigDecimal custoTotal;
+
+    @Column(name = "executor")
+    private String executor;
 
     public Long getId() {
         return id;
@@ -102,5 +114,37 @@ public class ItemServico {
 
     public void setCustoUnitario(BigDecimal custoUnitario) {
         this.custoUnitario = custoUnitario;
+    }
+
+    public String getArea() {
+        return area;
+    }
+
+    public void setArea(String area) {
+        this.area = area;
+    }
+
+    public BigDecimal getValorTotal() {
+        return valorTotal;
+    }
+
+    public void setValorTotal(BigDecimal valorTotal) {
+        this.valorTotal = valorTotal;
+    }
+
+    public BigDecimal getCustoTotal() {
+        return custoTotal;
+    }
+
+    public void setCustoTotal(BigDecimal custoTotal) {
+        this.custoTotal = custoTotal;
+    }
+
+    public String getExecutor() {
+        return executor;
+    }
+
+    public void setExecutor(String executor) {
+        this.executor = executor;
     }
 }

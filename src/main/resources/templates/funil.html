@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Cartec — Funil de atendimento</title>
+    <style th:replace="~{fragments/estilos :: base}"></style>
+</head>
+<body>
+<header th:replace="~{fragments/nav :: topbar}"></header>
+<div class="page-header">
+    <div>
+        <h1>Funil de atendimento</h1>
+        <p>Disparo → resposta → link do formulário → aprovado/rejeitado (automático)</p>
+    </div>
+</div>
+<main>
+    <section class="card">
+        <h2>Novo disparo</h2>
+        <form id="formDisparo">
+            <label for="clienteId">Cliente (opcional)</label>
+            <select id="clienteId">
+                <option value="">— não cadastrado —</option>
+                <option th:each="c : ${clientes}" th:value="${c.id}" th:text="${c.nome}"></option>
+            </select>
+            <label for="telefone">Telefone</label>
+            <input type="text" id="telefone" required placeholder="55XXXXXXXXXXX">
+            <label for="origem">Origem</label>
+            <select id="origem">
+                <option value="premium">Premium (rede social)</option>
+                <option value="crm_lembrete">CRM — lembrete de revisão</option>
+                <option value="campanha">Campanha</option>
+                <option value="conteudo">Conteúdo/autoridade</option>
+                <option value="frota_captacao">Captação de frota</option>
+                <option value="frota_reativacao">Reativação de frota</option>
+            </select>
+            <button type="submit">Registrar disparo</button>
+        </form>
+        <div id="resultadoDisparo" class="resultado"></div>
+    </section>
+
+    <section class="card" style="overflow-x:auto;">
+        <div style="display:flex; gap:16px; min-width:900px;">
+            <div th:each="statusEntry : ${colunas}" style="flex:1; min-width:200px;">
+                <h3 th:text="${statusEntry.key.rotulo}">Status</h3>
+                <div th:each="f : ${statusEntry.value}"
+                     style="border:1px solid var(--grid); border-radius:8px; padding:10px; margin-bottom:10px;">
+                    <div th:text="${f.cliente != null ? f.cliente.nome : f.telefone}">Cliente</div>
+                    <div class="descricao" th:text="${f.telefone}">Telefone</div>
+                    <div class="descricao" th:if="${f.origem != null}" th:text="'Origem: ' + ${f.origem}"></div>
+
+                    <button th:if="${f.status.name() == 'DISPARADO'}"
+                            th:attr="data-id=${f.id}" onclick="marcarRespondido(this)">Marcar respondido</button>
+
+                    <button th:if="${f.status.name() == 'RESPONDIDO'}"
+                            th:attr="data-id=${f.id}" onclick="gerarLink(this)">Gerar link de formulário</button>
+
+                    <div th:if="${f.status.name() == 'APROVADO'}" class="descricao">
+                        <a th:if="${f.evento != null}" th:href="@{/calendario}">Ver na agenda (evento #<span th:text="${f.evento.id}"></span>)</a>
+                    </div>
+
+                    <div th:if="${f.status.name() == 'REJEITADO'}" class="descricao" th:text="${f.motivoRejeicao}"></div>
+                </div>
+                <p class="vazio" th:if="${statusEntry.value.isEmpty()}">Vazio</p>
+            </div>
+        </div>
+    </section>
+</main>
+
+<script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
+<script>
+    document.getElementById('formDisparo').addEventListener('submit', async (evento) => {
+        evento.preventDefault();
+        const corpo = {
+            clienteId: document.getElementById('clienteId').value || null,
+            telefone: document.getElementById('telefone').value,
+            origem: document.getElementById('origem').value
+        };
+        const resposta = await fetch('/api/funil', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(corpo)
+        });
+        const caixa = document.getElementById('resultadoDisparo');
+        if (resposta.ok) {
+            caixa.className = 'resultado ok';
+            caixa.textContent = 'Disparo registrado. Recarregando...';
+            setTimeout(() => window.location.reload(), 800);
+        } else {
+            caixa.className = 'resultado erro';
+            caixa.textContent = 'Erro ao registrar (HTTP ' + resposta.status + ')';
+        }
+    });
+
+    async function marcarRespondido(botao) {
+        const id = botao.getAttribute('data-id');
+        await fetch('/api/funil/' + id + '/respondido', { method: 'PATCH' });
+        window.location.reload();
+    }
+
+    async function gerarLink(botao) {
+        const id = botao.getAttribute('data-id');
+        const resposta = await fetch('/api/funil/' + id + '/gerar-link', { method: 'POST' });
+        const dados = await resposta.json();
+        await navigator.clipboard.writeText(dados.link).catch(() => {});
+        alert('Link copiado: ' + dados.link);
+        window.location.reload();
+    }
+</script>
+</body>
+</html>

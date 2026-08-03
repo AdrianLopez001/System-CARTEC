@@ -5,29 +5,25 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 /**
- * Mensagem de WhatsApp recebida e classificada pela IA (ver whatsapp-bot/
- * na raiz do repo - processo Node.js separado, conecta via Baileys e
- * classifica cada conversa com Claude, manda pra ca por POST). Vinculo com
- * Cliente e so-leitura aqui: se o telefone bate com um cliente cadastrado,
- * fica linkado; senao fica "solto" na caixa de entrada ate alguem decidir
- * criar o cadastro.
+ * Estado/metadados de uma conversa de WhatsApp por telefone (1 linha por
+ * telefone, nao por mensagem - o historico completo de mensagens fica em
+ * MensagemChat). Classificacao (intencao/urgencia/consultor/resumo) e
+ * manual, feita pelo operador direto na tela de chat. Vinculo com Cliente e
+ * automatico quando o telefone bate com um cadastro; nao cria cliente novo.
  */
 @Entity
-@Table(name = "mensagem_whatsapp")
-public class MensagemWhatsapp {
+@Table(name = "conversa_whatsapp")
+public class ConversaWhatsapp {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "telefone", nullable = false)
+    @Column(name = "telefone", nullable = false, unique = true)
     private String telefone;
 
-    @Column(name = "cliente_nome_ia")
-    private String clienteNomeIa;
-
-    @Column(name = "veiculo")
-    private String veiculo;
+    @Column(name = "nome_contato_whatsapp")
+    private String nomeContatoWhatsapp;
 
     @Column(name = "intencao")
     private String intencao;
@@ -41,11 +37,8 @@ public class MensagemWhatsapp {
     @Column(name = "resumo", length = 500)
     private String resumo;
 
-    @Column(name = "total_mensagens")
-    private int totalMensagens;
-
-    @Column(name = "data_recebimento")
-    private LocalDateTime dataRecebimento;
+    @Column(name = "data_ultima_mensagem")
+    private LocalDateTime dataUltimaMensagem;
 
     @Column(name = "lida", nullable = false, columnDefinition = "boolean default false")
     private boolean lida = false;
@@ -56,8 +49,8 @@ public class MensagemWhatsapp {
 
     @PrePersist
     public void aoCriar() {
-        if (dataRecebimento == null) {
-            dataRecebimento = LocalDateTime.now();
+        if (dataUltimaMensagem == null) {
+            dataUltimaMensagem = LocalDateTime.now();
         }
     }
 
@@ -77,20 +70,12 @@ public class MensagemWhatsapp {
         this.telefone = telefone;
     }
 
-    public String getClienteNomeIa() {
-        return clienteNomeIa;
+    public String getNomeContatoWhatsapp() {
+        return nomeContatoWhatsapp;
     }
 
-    public void setClienteNomeIa(String clienteNomeIa) {
-        this.clienteNomeIa = clienteNomeIa;
-    }
-
-    public String getVeiculo() {
-        return veiculo;
-    }
-
-    public void setVeiculo(String veiculo) {
-        this.veiculo = veiculo;
+    public void setNomeContatoWhatsapp(String nomeContatoWhatsapp) {
+        this.nomeContatoWhatsapp = nomeContatoWhatsapp;
     }
 
     public String getIntencao() {
@@ -125,20 +110,12 @@ public class MensagemWhatsapp {
         this.resumo = resumo;
     }
 
-    public int getTotalMensagens() {
-        return totalMensagens;
+    public LocalDateTime getDataUltimaMensagem() {
+        return dataUltimaMensagem;
     }
 
-    public void setTotalMensagens(int totalMensagens) {
-        this.totalMensagens = totalMensagens;
-    }
-
-    public LocalDateTime getDataRecebimento() {
-        return dataRecebimento;
-    }
-
-    public void setDataRecebimento(LocalDateTime dataRecebimento) {
-        this.dataRecebimento = dataRecebimento;
+    public void setDataUltimaMensagem(LocalDateTime dataUltimaMensagem) {
+        this.dataUltimaMensagem = dataUltimaMensagem;
     }
 
     public boolean isLida() {

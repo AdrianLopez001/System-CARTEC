@@ -27,7 +27,7 @@ public class DemoDataService {
     private final MetricaSemanalRepository metricaSemanalRepository;
     private final MetaRepository metaRepository;
     private final CampanhaRepository campanhaRepository;
-    private final MensagemWhatsappRepository mensagemWhatsappRepository;
+    private final ConversaWhatsappRepository conversaWhatsappRepository;
     private final ConfiguracaoSistemaRepository configuracaoRepository;
 
     public DemoDataService(EmpresaRepository empresaRepository,
@@ -40,7 +40,7 @@ public class DemoDataService {
                             MetricaSemanalRepository metricaSemanalRepository,
                             MetaRepository metaRepository,
                             CampanhaRepository campanhaRepository,
-                            MensagemWhatsappRepository mensagemWhatsappRepository,
+                            ConversaWhatsappRepository conversaWhatsappRepository,
                             ConfiguracaoSistemaRepository configuracaoRepository) {
         this.empresaRepository = empresaRepository;
         this.clienteRepository = clienteRepository;
@@ -52,7 +52,7 @@ public class DemoDataService {
         this.metricaSemanalRepository = metricaSemanalRepository;
         this.metaRepository = metaRepository;
         this.campanhaRepository = campanhaRepository;
-        this.mensagemWhatsappRepository = mensagemWhatsappRepository;
+        this.conversaWhatsappRepository = conversaWhatsappRepository;
         this.configuracaoRepository = configuracaoRepository;
     }
 
@@ -149,10 +149,10 @@ public class DemoDataService {
         // 5. Desvincular clientes demo de mensagens WhatsApp
         java.util.List<Cliente> clientesDemo = clienteRepository.findByDemoTrue();
         for (Cliente c : clientesDemo) {
-            java.util.List<MensagemWhatsapp> msgs = mensagemWhatsappRepository.findByClienteId(c.getId());
-            for (MensagemWhatsapp m : msgs) {
-                m.setCliente(null);
-                mensagemWhatsappRepository.save(m);
+            java.util.List<ConversaWhatsapp> conversas = conversaWhatsappRepository.findByClienteId(c.getId());
+            for (ConversaWhatsapp conv : conversas) {
+                conv.setCliente(null);
+                conversaWhatsappRepository.save(conv);
             }
         }
 

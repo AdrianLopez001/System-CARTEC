@@ -2,121 +2,114 @@
 <html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Cartec — Integração WhatsApp Web</title>
+    <title>Cartec — Chat WhatsApp</title>
     <style th:replace="~{fragments/estilos :: base}"></style>
     <style>
-        .painel-conexao { display: flex; gap: 20px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-        .qr-box { background: #ffffff; padding: 16px; border-radius: 8px; text-align: center; border: 1px solid var(--grid); }
+        /* Painel de conexao compacto */
+        .conexao-compacta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .status-badge { font-weight: 700; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; }
+        .status-CONECTADO { background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
+        .status-AGUARDANDO_QR { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+        .status-DESCONECTADO { background: color-mix(in srgb, var(--bad) 12%, transparent); color: var(--bad); }
+        .qr-box { background: #ffffff; padding: 16px; border-radius: 8px; text-align: center; border: 1px solid var(--grid); margin-top: 12px; }
         .qr-box img { width: 220px; height: 220px; display: block; margin: 0 auto 10px auto; }
-        .status-badge { font-weight: 700; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; display: inline-flex; align-items: center; gap: 6px; }
-        .status-CONECTADO { background: #d1fae5; color: #065f46; }
-        .status-AGUARDANDO_QR { background: #fef3c7; color: #92400e; }
-        .status-DESCONECTADO { background: #fee2e2; color: #991b1b; }
-        .grid-whatsapp { display: grid; grid-template-columns: 1.2fr 1fr; gap: 20px; margin-top: 20px; }
-        @media (max-width: 850px) { .grid-whatsapp { grid-template-columns: 1fr; } }
+
+        /* Layout split-view do chat */
+        .whatsapp-shell {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            border: 1px solid var(--grid);
+            border-radius: 4px;
+            overflow: hidden;
+            height: calc(100vh - 230px);
+            min-height: 480px;
+            background: var(--surface-1);
+        }
+        @media (max-width: 850px) { .whatsapp-shell { grid-template-columns: 1fr; height: auto; } }
+
+        /* Coluna de contatos */
+        .lista-contatos { border-right: 1px solid var(--grid); overflow-y: auto; display: flex; flex-direction: column; }
+        .contato-item { padding: 12px 16px; border-bottom: 1px solid var(--grid); cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
+        .contato-item:hover { background: var(--page); }
+        .contato-item.ativo { background: color-mix(in srgb, var(--brand) 10%, transparent); }
+        .contato-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+        .contato-nome { font-weight: 600; font-size: 0.92rem; }
+        .contato-hora { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+        .contato-preview { font-size: 0.82rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .contato-badges { display: flex; gap: 4px; flex-wrap: wrap; }
+        .ponto-nao-lida { background: var(--brand); color: #fff; border-radius: 20px; font-size: 0.68rem; font-weight: 700; padding: 1px 7px; }
+
+        /* Coluna da thread */
+        .thread-coluna { display: flex; flex-direction: column; min-width: 0; }
+        .thread-cabecalho { padding: 12px 16px; border-bottom: 1px solid var(--grid); }
+        .thread-cabecalho .nome { font-weight: 700; font-size: 0.98rem; }
+        .thread-cabecalho .telefone { font-size: 0.78rem; color: var(--muted); }
+        .classificacao-controles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-top: 10px; }
+        .classificacao-controles select, .classificacao-controles input { margin-bottom: 0; padding: 6px 8px; font-size: 0.78rem; }
+        .classificacao-controles label { margin-bottom: 2px; font-size: 0.68rem; }
+
+        .thread-mensagens { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; background: var(--page); }
+        .bolha { max-width: 65%; padding: 8px 12px; border-radius: 10px; font-size: 0.87rem; line-height: 1.4; word-wrap: break-word; }
+        .bolha .hora { display: block; font-size: 0.68rem; margin-top: 3px; opacity: 0.7; text-align: right; }
+        .bolha-entrada { align-self: flex-start; background: var(--surface-1); border: 1px solid var(--grid); border-bottom-left-radius: 2px; }
+        .bolha-saida { align-self: flex-end; background: color-mix(in srgb, var(--brand) 14%, var(--surface-1)); border-bottom-right-radius: 2px; }
+
+        .thread-vazia { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--muted); font-size: 0.9rem; text-align: center; padding: 20px; }
+
+        .thread-form { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--grid); background: var(--surface-1); }
+        .thread-form textarea { flex: 1; min-height: 40px; max-height: 100px; margin-bottom: 0; resize: none; }
+        .thread-form button { align-self: flex-end; }
     </style>
 </head>
 <body>
 <header th:replace="~{fragments/nav :: topbar}"></header>
 <div class="page-header">
     <div>
-        <h1>Central WhatsApp & Atendimento</h1>
-        <p>Conexão via QR Code, sincronização de conversas e disparo direto pelo ERP</p>
+        <h1>Chat WhatsApp</h1>
+        <p>Conversas em tempo real, resposta direta pelo ERP e classificação manual</p>
     </div>
 </div>
 <main>
-    <!-- PAINEL DE CONEXÃO E QR CODE -->
+    <!-- PAINEL DE CONEXÃO COMPACTO -->
     <section class="card">
-        <div class="painel-conexao">
-            <div>
-                <h2 style="margin-top:0;">Status da Conexão WhatsApp</h2>
-                <div style="margin-bottom:12px;">
-                    <span id="badgeStatus" class="status-badge status-DESCONECTADO">
-                        <span id="pontoStatus" style="width:10px; height:10px; border-radius:50%; background:currentColor;"></span>
-                        <span id="textoStatus">Verificando conexão...</span>
-                    </span>
-                </div>
-                <p id="infoConexao" class="descricao" style="margin-bottom:12px;">
-                    Inicie o serviço de bot em <code>whatsapp-bot/</code> para conectar a conta oficial da Cartec.
-                </p>
-                <div id="btnAcoesConexao">
-                    <button type="button" class="secundario" onclick="desconectarBot()" id="btnDesconectar" style="display:none;">Desconectar Conta</button>
-                    <button type="button" class="botao" onclick="verificarStatus()" id="btnAtualizar">Atualizar Status 🔄</button>
-                </div>
-            </div>
-
-            <!-- CONTAINER QR CODE -->
-            <div id="containerQr" class="qr-box" style="display:none;">
-                <img id="imgQrCode" src="" alt="QR Code WhatsApp">
-                <span style="font-size:0.8rem; color:#475569; display:block;">Escaneie com a câmera do seu WhatsApp</span>
-            </div>
+        <div class="conexao-compacta">
+            <span id="badgeStatus" class="status-badge status-DESCONECTADO">
+                <span id="pontoStatus" style="width:8px; height:8px; border-radius:50%; background:currentColor;"></span>
+                <span id="textoStatus">Verificando conexão...</span>
+            </span>
+            <span id="infoConexao" class="descricao" style="margin:0;">Verificando o bot...</span>
+            <button type="button" class="secundario" onclick="toggleQr()" id="btnMostrarQr" style="display:none;">Ver QR Code</button>
+            <button type="button" class="secundario" onclick="desconectarBot()" id="btnDesconectar" style="display:none;">Desconectar</button>
+        </div>
+        <div id="containerQr" class="qr-box" style="display:none;">
+            <img id="imgQrCode" src="" alt="QR Code WhatsApp">
+            <span style="font-size:0.8rem; color:#475569; display:block;">Escaneie com a câmera do seu WhatsApp (Aparelhos Conectados)</span>
         </div>
     </section>
 
-    <!-- ÁREA DE ATENDIMENTO E MENSAGENS -->
-    <div class="grid-whatsapp">
-        <section class="card">
-            <h2>Conversas Classificadas (IA)</h2>
-            <p class="descricao">Mensagens recebidas e analisadas automaticamente pelo assistente IA.</p>
-            <div class="caixa-entrada">
-                <div class="msg-item" th:each="m : ${mensagens}" th:classappend="${m.lida} ? 'lida' : ''" th:id="'msg-' + ${m.id}">
-                    <div class="topo">
-                        <span class="quem">
-                            <a th:if="${m.cliente != null}" th:href="@{'/clientes/' + ${m.cliente.id}}" th:text="${m.cliente.nome}" style="font-weight:600;">Cliente</a>
-                            <span th:if="${m.cliente == null}" th:text="${m.clienteNomeIa} + ' (não cadastrado)'">Nome (não cadastrado)</span>
-                            <span style="color:var(--muted); font-weight:400;" th:text="'· ' + ${m.telefone}">telefone</span>
-                        </span>
-                        <span class="quando" th:text="${#temporals.format(m.dataRecebimento, 'dd/MM/yyyy HH:mm')}">01/01/2026 00:00</span>
-                    </div>
-                    <div style="margin:6px 0;">
-                        <span class="badge" th:if="${m.intencao != null}" th:text="${m.intencao}">intenção</span>
-                        <span class="badge seg-inativo" th:if="${m.urgencia == 'urgente'}" th:text="'urgência: ' + ${m.urgencia}">urgência</span>
-                        <span class="badge seg-em-risco" th:if="${m.urgencia == 'normal'}" th:text="'urgência: ' + ${m.urgencia}">urgência</span>
-                        <span class="badge seg-ativo" th:if="${m.urgencia == 'baixa'}" th:text="'urgência: ' + ${m.urgencia}">urgência</span>
-                        <span class="badge" th:if="${m.consultorSugerido != null}" style="background:transparent; border:1px solid var(--grid); color:var(--text-secondary);" th:text="'consultor: ' + ${m.consultorSugerido}">consultor</span>
-                    </div>
-                    <p class="resumo" th:text="${m.resumo}" style="margin:4px 0;">Resumo da conversa</p>
-                    <div class="acoes" style="margin-top:10px;">
-                        <button type="button" class="botao" th:attr="onclick=|prepararEnvioDirecto('${m.telefone}', '${m.cliente != null ? m.cliente.nome : m.clienteNomeIa}')|">Responder pelo ERP 💬</button>
-                        <a class="botao secundario" th:href="'https://wa.me/' + ${m.telefone}" target="_blank" rel="noopener">WhatsApp Web ↗</a>
-                        <button th:if="${m.cliente == null}" class="secundario" type="button" th:attr="onclick=|criarCliente(${m.id}, '${m.clienteNomeIa}', '${m.telefone}')|">Cadastrar Cliente</button>
-                        <button th:unless="${m.lida}" class="secundario" type="button" th:attr="onclick=|marcarLida(${m.id})|">Marcar Lida</button>
-                    </div>
-                </div>
-            </div>
-            <p class="vazio" th:if="${mensagens.isEmpty()}">
-                Nenhuma conversa classificada até o momento.
-            </p>
-        </section>
+    <!-- CHAT SPLIT-VIEW -->
+    <div class="whatsapp-shell">
+        <aside class="lista-contatos" id="listaContatos">
+            <p class="vazio" style="padding:16px;">Carregando conversas...</p>
+        </aside>
 
-        <!-- CAIXA DE ENVIO DIRETO DE MENSAGENS -->
-        <section class="card">
-            <h2>Enviar Mensagem Direta</h2>
-            <p class="descricao">Envie mensagens diretamente pelo WhatsApp conectado da oficina.</p>
-            <form id="formEnvioDireto">
-                <div style="margin-bottom:12px;">
-                    <label for="destinatarioTelefone">Telefone do Destinatário</label>
-                    <input type="text" id="destinatarioTelefone" required placeholder="Ex: 5584999990000" style="width:100%; padding:8px; border:1px solid var(--grid); border-radius:4px;">
-                </div>
-                <div style="margin-bottom:12px;">
-                    <label for="destinatarioNome">Nome / Referência</label>
-                    <input type="text" id="destinatarioNome" placeholder="Nome do contato (opcional)" style="width:100%; padding:8px; border:1px solid var(--grid); border-radius:4px;">
-                </div>
-                <div style="margin-bottom:12px;">
-                    <label for="mensagemTexto">Texto da Mensagem</label>
-                    <textarea id="mensagemTexto" required rows="5" placeholder="Digite sua mensagem aqui..." style="width:100%; padding:8px; border:1px solid var(--grid); border-radius:4px; font-family:inherit;"></textarea>
-                </div>
-                <button type="submit" class="botao" style="width:100%;">Enviar Mensagem via WhatsApp 🚀</button>
-            </form>
-            <div id="resultadoEnvio" class="resultado" style="margin-top:12px;"></div>
+        <section class="thread-coluna">
+            <div id="threadConteudo" class="thread-vazia">Selecione uma conversa à esquerda para ver as mensagens.</div>
         </section>
     </div>
 </main>
 
 <script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
+<script th:replace="~{fragments/scripts :: escape-html}"></script>
 <script>
-    let intervalId = null;
+    const OPCOES_INTENCAO = ['agendamento', 'orcamento', 'status_os', 'reclamacao', 'pecas', 'elogio', 'informacao', 'outro'];
+    const OPCOES_URGENCIA = ['urgente', 'normal', 'baixa'];
+    const OPCOES_CONSULTOR = ['Rosemberg', 'Luiz', 'Adrian', 'qualquer'];
 
+    let conversas = [];
+    let telefoneAtivo = null;
+
+    // ───────────── Conexão do bot ─────────────
     async function verificarStatus() {
         try {
             const res = await fetch('/api/whatsapp/status');
@@ -125,34 +118,42 @@
             const badge = document.getElementById('badgeStatus');
             const texto = document.getElementById('textoStatus');
             const info = document.getElementById('infoConexao');
+            const btnQr = document.getElementById('btnMostrarQr');
+            const btnDesconectar = document.getElementById('btnDesconectar');
             const containerQr = document.getElementById('containerQr');
             const imgQr = document.getElementById('imgQrCode');
-            const btnDesconectar = document.getElementById('btnDesconectar');
 
             badge.className = 'status-badge status-' + data.status;
 
             if (data.status === 'CONECTADO') {
                 texto.textContent = 'CONECTADO (' + (data.phone || 'WhatsApp Oficial') + ')';
-                info.textContent = 'A conta do WhatsApp da Cartec está ativa e pronta para enviar e receber mensagens.';
+                info.textContent = 'Conta ativa, pronta para enviar e receber mensagens.';
+                btnQr.style.display = 'none';
                 containerQr.style.display = 'none';
                 btnDesconectar.style.display = 'inline-block';
             } else if (data.status === 'AGUARDANDO_QR') {
                 texto.textContent = 'AGUARDANDO LEITURA DO QR CODE';
-                info.textContent = 'Abra o WhatsApp no celular > Aparelhos Conectados > Conectar um Aparelho e escaneie o código ao lado.';
+                info.textContent = 'Abra o WhatsApp no celular > Aparelhos Conectados.';
                 btnDesconectar.style.display = 'none';
                 if (data.qrCodeUrl) {
                     imgQr.src = data.qrCodeUrl;
-                    containerQr.style.display = 'block';
+                    btnQr.style.display = 'inline-block';
                 }
             } else {
                 texto.textContent = 'DESCONECTADO';
-                info.textContent = 'O bot do WhatsApp não está conectado. Inicie o script whatsapp-bot (node index.js) no terminal para gerar o QR Code.';
+                info.textContent = 'Inicie o whatsapp-bot (node index.js) para conectar.';
+                btnQr.style.display = 'none';
                 containerQr.style.display = 'none';
                 btnDesconectar.style.display = 'none';
             }
         } catch (err) {
             console.error('Erro ao verificar status do bot WhatsApp:', err);
         }
+    }
+
+    function toggleQr() {
+        const containerQr = document.getElementById('containerQr');
+        containerQr.style.display = containerQr.style.display === 'none' ? 'block' : 'none';
     }
 
     async function desconectarBot() {
@@ -166,64 +167,202 @@
         }
     }
 
-    function prepararEnvioDirecto(telefone, nome) {
-        document.getElementById('destinatarioTelefone').value = telefone.replace(/\D/g, '');
-        document.getElementById('destinatarioNome').value = nome || '';
-        document.getElementById('mensagemTexto').focus();
+    // ───────────── Lista de conversas ─────────────
+    async function carregarConversas() {
+        const res = await fetch('/api/whatsapp/conversas');
+        conversas = await res.json();
+        renderizarListaContatos();
     }
 
-    document.getElementById('formEnvioDireto').addEventListener('submit', async (e) => {
+    function nomeConversa(c) {
+        if (c.cliente && c.cliente.nome) return c.cliente.nome;
+        if (c.nomeContatoWhatsapp) return c.nomeContatoWhatsapp;
+        return c.telefone;
+    }
+
+    function renderizarListaContatos() {
+        const container = document.getElementById('listaContatos');
+        if (conversas.length === 0) {
+            container.innerHTML = '<p class="vazio" style="padding:16px;">Nenhuma conversa ainda.</p>';
+            return;
+        }
+        container.innerHTML = '';
+        conversas.forEach(c => {
+            const item = document.createElement('div');
+            item.className = 'contato-item' + (c.telefone === telefoneAtivo ? ' ativo' : '');
+            item.onclick = () => selecionarConversa(c.telefone);
+
+            const hora = c.dataUltimaMensagem ? new Date(c.dataUltimaMensagem).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+
+            item.innerHTML = `
+                <div class="contato-topo">
+                    <span class="contato-nome">${escapeHtml(nomeConversa(c))}</span>
+                    <span class="contato-hora">${hora}</span>
+                </div>
+                <div class="contato-preview">${escapeHtml(c.resumo || c.telefone)}</div>
+                <div class="contato-badges">
+                    ${!c.lida ? '<span class="ponto-nao-lida">NOVA</span>' : ''}
+                    ${c.intencao ? `<span class="badge">${escapeHtml(c.intencao)}</span>` : ''}
+                    ${c.urgencia === 'urgente' ? '<span class="badge seg-inativo">urgente</span>' : ''}
+                </div>
+            `;
+            container.appendChild(item);
+        });
+    }
+
+    // ───────────── Thread ativa ─────────────
+    async function selecionarConversa(telefone) {
+        telefoneAtivo = telefone;
+        renderizarListaContatos();
+
+        const conversa = conversas.find(c => c.telefone === telefone);
+        const conteudo = document.getElementById('threadConteudo');
+        conteudo.className = '';
+        conteudo.innerHTML = montarEsqueletoThread(conversa);
+
+        preencherControlesClassificacao(conversa);
+        document.getElementById('formEnvio').addEventListener('submit', enviarMensagem);
+        document.getElementById('formClassificacao').addEventListener('change', salvarClassificacao);
+
+        await carregarMensagens(telefone);
+
+        if (conversa && !conversa.lida) {
+            await fetch('/api/whatsapp/conversas/' + telefone + '/marcar-lida', { method: 'POST' });
+            conversa.lida = true;
+            renderizarListaContatos();
+        }
+    }
+
+    function montarEsqueletoThread(conversa) {
+        const nome = conversa ? nomeConversa(conversa) : telefoneAtivo;
+        return `
+            <div class="thread-cabecalho">
+                <div class="nome">${escapeHtml(nome)}</div>
+                <div class="telefone">${escapeHtml(telefoneAtivo)}</div>
+                <form id="formClassificacao" class="classificacao-controles">
+                    ${selectHtml('intencao', OPCOES_INTENCAO, conversa ? conversa.intencao : null)}
+                    ${selectHtml('urgencia', OPCOES_URGENCIA, conversa ? conversa.urgencia : null)}
+                    ${selectHtml('consultorSugerido', OPCOES_CONSULTOR, conversa ? conversa.consultorSugerido : null)}
+                    <input type="text" name="resumo" placeholder="Resumo da conversa" value="${escapeAttr(conversa ? conversa.resumo : '')}">
+                </form>
+            </div>
+            <div class="thread-mensagens" id="threadMensagens"></div>
+            <form id="formEnvio" class="thread-form">
+                <textarea id="textoEnvio" placeholder="Digite uma mensagem..." required></textarea>
+                <button type="submit" class="botao">Enviar</button>
+            </form>
+        `;
+    }
+
+    function selectHtml(nome, opcoes, valorAtual) {
+        const options = ['<option value="">' + rotulo(nome) + '</option>']
+            .concat(opcoes.map(o => `<option value="${o}" ${o === valorAtual ? 'selected' : ''}>${o}</option>`));
+        return `<select name="${nome}">${options.join('')}</select>`;
+    }
+
+    function rotulo(campo) {
+        return { intencao: 'Intenção', urgencia: 'Urgência', consultorSugerido: 'Consultor' }[campo] || campo;
+    }
+
+    function preencherControlesClassificacao(conversa) {
+        // Controles ja sao preenchidos no montarEsqueletoThread via selected/value
+    }
+
+    async function carregarMensagens(telefone) {
+        const res = await fetch('/api/whatsapp/conversas/' + telefone + '/mensagens');
+        const mensagens = await res.json();
+        const container = document.getElementById('threadMensagens');
+        if (!container) return;
+        container.innerHTML = '';
+        mensagens.forEach(m => container.appendChild(criarBolha(m)));
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function criarBolha(msg) {
+        const div = document.createElement('div');
+        div.className = 'bolha ' + (msg.direcao === 'ENTRADA' ? 'bolha-entrada' : 'bolha-saida');
+        const hora = new Date(msg.dataHora).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+        div.innerHTML = `${escapeHtml(msg.texto)}<span class="hora">${hora}</span>`;
+        return div;
+    }
+
+    async function enviarMensagem(e) {
         e.preventDefault();
-        const caixa = document.getElementById('resultadoEnvio');
-        const tel = document.getElementById('destinatarioTelefone').value;
-        const msg = document.getElementById('mensagemTexto').value;
+        const campo = document.getElementById('textoEnvio');
+        const texto = campo.value.trim();
+        if (!texto || !telefoneAtivo) return;
 
-        caixa.className = 'resultado';
-        caixa.textContent = 'Enviando...';
-
+        campo.disabled = true;
         try {
             const res = await fetch('/api/whatsapp/enviar-mensagem', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ telefone: tel, texto: msg })
+                body: JSON.stringify({ telefone: telefoneAtivo, texto })
             });
-            const data = await res.json();
-            if (res.ok && data.ok) {
-                caixa.className = 'resultado ok';
-                caixa.textContent = 'Mensagem enviada com sucesso pelo WhatsApp!';
-                document.getElementById('mensagemTexto').value = '';
+            if (res.ok) {
+                campo.value = '';
             } else {
-                caixa.className = 'resultado erro';
-                caixa.textContent = 'Erro ao enviar: ' + (data.erro || 'Verifique se o bot está CONECTADO.');
+                const data = await res.json().catch(() => ({}));
+                alert('Erro ao enviar: ' + (data.erro || 'verifique se o bot está CONECTADO.'));
             }
         } catch (err) {
-            caixa.className = 'resultado erro';
-            caixa.textContent = 'Erro de rede: ' + err.message;
+            alert('Erro de rede: ' + err.message);
+        } finally {
+            campo.disabled = false;
+            campo.focus();
         }
-    });
-
-    async function marcarLida(id) {
-        await fetch('/api/whatsapp/mensagens/' + id + '/marcar-lida', { method: 'POST' });
-        window.location.reload();
     }
 
-    async function criarCliente(id, nome, telefone) {
-        const nomeFinal = (nome === 'desconhecido' || !nome) ? prompt('Nome do cliente:') : nome;
-        if (!nomeFinal) return;
-        const resposta = await fetch('/api/clientes', {
-            method: 'POST',
+    async function salvarClassificacao(e) {
+        if (!telefoneAtivo) return;
+        const form = document.getElementById('formClassificacao');
+        const dados = {
+            intencao: form.intencao.value || null,
+            urgencia: form.urgencia.value || null,
+            consultorSugerido: form.consultorSugerido.value || null,
+            resumo: form.resumo.value || null
+        };
+        const res = await fetch('/api/whatsapp/conversas/' + telefoneAtivo + '/classificacao', {
+            method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nome: nomeFinal, telefone: telefone })
+            body: JSON.stringify(dados)
         });
-        if (resposta.ok) {
-            window.location.reload();
-        } else {
-            alert('Erro ao criar cliente (HTTP ' + resposta.status + ')');
+        if (res.ok) {
+            const atualizada = await res.json();
+            const idx = conversas.findIndex(c => c.telefone === telefoneAtivo);
+            if (idx >= 0) conversas[idx] = atualizada;
+            renderizarListaContatos();
         }
+    }
+
+    // ───────────── SSE - mensagens em tempo real ─────────────
+    function conectarSse() {
+        const es = new EventSource('/api/whatsapp/stream');
+        es.addEventListener('nova-mensagem', async (evt) => {
+            const msg = JSON.parse(evt.data);
+            await carregarConversas();
+            if (msg.telefone === telefoneAtivo) {
+                const container = document.getElementById('threadMensagens');
+                if (container) {
+                    container.appendChild(criarBolha(msg));
+                    container.scrollTop = container.scrollHeight;
+                }
+                if (msg.direcao === 'ENTRADA') {
+                    fetch('/api/whatsapp/conversas/' + telefoneAtivo + '/marcar-lida', { method: 'POST' });
+                }
+            }
+        });
+        es.onerror = () => { /* EventSource reconecta sozinho */ };
+    }
+
+    function escapeAttr(texto) {
+        return escapeHtml(texto).replace(/"/g, '&quot;');
     }
 
     verificarStatus();
-    intervalId = setInterval(verificarStatus, 3000);
+    setInterval(verificarStatus, 3000);
+    carregarConversas();
+    conectarSse();
 </script>
 </body>
 </html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cartec — Agendamento</title>
+    <style th:replace="~{fragments/estilos :: base}"></style>
+</head>
+<body>
+<div class="page-header">
+    <div>
+        <h1>Confirmar agendamento</h1>
+        <p>Preencha os dados abaixo para confirmar seu horário na Cartec.</p>
+    </div>
+</div>
+<main>
+    <section class="card" style="max-width:480px; margin:0 auto;">
+        <form th:action="@{'/agendar/' + ${funil.tokenFormulario}}" method="post">
+            <label for="veiculo">Veículo (marca/modelo)</label>
+            <input type="text" id="veiculo" name="veiculo" required placeholder="Ex: Hilux 2022">
+
+            <label for="placa">Placa (opcional)</label>
+            <input type="text" id="placa" name="placa" placeholder="ABC1D23">
+
+            <label for="servico">Serviço desejado</label>
+            <input type="text" id="servico" name="servico" required placeholder="Ex: Revisão preventiva">
+
+            <label for="dataPreferida">Data preferida</label>
+            <input type="date" id="dataPreferida" name="dataPreferida" required>
+
+            <label for="horaPreferida">Horário preferido</label>
+            <select id="horaPreferida" name="horaPreferida" required>
+                <option value="8">08:00</option>
+                <option value="9">09:00</option>
+                <option value="10">10:00</option>
+                <option value="11">11:00</option>
+                <option value="13">13:00</option>
+                <option value="14">14:00</option>
+                <option value="15">15:00</option>
+                <option value="16">16:00</option>
+                <option value="17">17:00</option>
+            </select>
+
+            <label for="observacoes">Observações (opcional)</label>
+            <textarea id="observacoes" name="observacoes"></textarea>
+
+            <button type="submit">Confirmar agendamento</button>
+        </form>
+    </section>
+</main>
+</body>
+</html>
