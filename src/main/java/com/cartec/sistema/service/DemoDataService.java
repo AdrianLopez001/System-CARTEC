@@ -20,33 +20,39 @@ public class DemoDataService {
     private final EmpresaRepository empresaRepository;
     private final ClienteRepository clienteRepository;
     private final OrdemServicoRepository ordemServicoRepository;
+    private final ItemServicoRepository itemServicoRepository;
     private final TarefaRepository tarefaRepository;
     private final NotaRepository notaRepository;
     private final EventoRepository eventoRepository;
     private final MetricaSemanalRepository metricaSemanalRepository;
     private final MetaRepository metaRepository;
     private final CampanhaRepository campanhaRepository;
+    private final MensagemWhatsappRepository mensagemWhatsappRepository;
     private final ConfiguracaoSistemaRepository configuracaoRepository;
 
     public DemoDataService(EmpresaRepository empresaRepository,
                             ClienteRepository clienteRepository,
                             OrdemServicoRepository ordemServicoRepository,
+                            ItemServicoRepository itemServicoRepository,
                             TarefaRepository tarefaRepository,
                             NotaRepository notaRepository,
                             EventoRepository eventoRepository,
                             MetricaSemanalRepository metricaSemanalRepository,
                             MetaRepository metaRepository,
                             CampanhaRepository campanhaRepository,
+                            MensagemWhatsappRepository mensagemWhatsappRepository,
                             ConfiguracaoSistemaRepository configuracaoRepository) {
         this.empresaRepository = empresaRepository;
         this.clienteRepository = clienteRepository;
         this.ordemServicoRepository = ordemServicoRepository;
+        this.itemServicoRepository = itemServicoRepository;
         this.tarefaRepository = tarefaRepository;
         this.notaRepository = notaRepository;
         this.eventoRepository = eventoRepository;
         this.metricaSemanalRepository = metricaSemanalRepository;
         this.metaRepository = metaRepository;
         this.campanhaRepository = campanhaRepository;
+        this.mensagemWhatsappRepository = mensagemWhatsappRepository;
         this.configuracaoRepository = configuracaoRepository;
     }
 
@@ -109,15 +115,46 @@ public class DemoDataService {
 
     @Transactional
     public void desativar() {
+        // 1. Desvincular e deletar itens de servico de OS demo
+        java.util.List<OrdemServico> osDemo = ordemServicoRepository.findByDemoTrue();
+        for (OrdemServico os : osDemo) {
+            if (os.getItens() != null && !os.getItens().isEmpty()) {
+                itemServicoRepository.deleteAll(os.getItens());
+            }
+        }
+        ordemServicoRepository.deleteAll(osDemo);
+
+        // 2. Deletar entidades demo dependentes
         eventoRepository.deleteAll(eventoRepository.findByDemoTrue());
         tarefaRepository.deleteAll(tarefaRepository.findByDemoTrue());
         notaRepository.deleteAll(notaRepository.findByDemoTrue());
-        ordemServicoRepository.deleteAll(ordemServicoRepository.findByDemoTrue());
         campanhaRepository.deleteAll(campanhaRepository.findByDemoTrue());
         metricaSemanalRepository.deleteAll(metricaSemanalRepository.findByDemoTrue());
         metaRepository.deleteAll(metaRepository.findByDemoTrue());
-        clienteRepository.deleteAll(clienteRepository.findByDemoTrue());
-        empresaRepository.deleteAll(empresaRepository.findByDemoTrue());
+
+        // 3. Desvincular clientes demo de mensagens WhatsApp
+        java.util.List<Cliente> clientesDemo = clienteRepository.findByDemoTrue();
+        for (Cliente c : clientesDemo) {
+            java.util.List<MensagemWhatsapp> msgs = mensagemWhatsappRepository.findByClienteId(c.getId());
+            for (MensagemWhatsapp m : msgs) {
+                m.setCliente(null);
+                mensagemWhatsappRepository.save(m);
+            }
+        }
+
+        // 4. Desvincular empresas demo dos clientes
+        java.util.List<Empresa> empresasDemo = empresaRepository.findByDemoTrue();
+        for (Empresa emp : empresasDemo) {
+            java.util.List<Cliente> contatos = clienteRepository.findByEmpresaId(emp.getId());
+            for (Cliente cont : contatos) {
+                cont.setEmpresa(null);
+                clienteRepository.save(cont);
+            }
+        }
+
+        // 5. Deletar clientes e empresas demo
+        clienteRepository.deleteAll(clientesDemo);
+        empresaRepository.deleteAll(empresasDemo);
 
         salvarFlag(false);
     }

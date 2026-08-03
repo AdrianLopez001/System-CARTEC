@@ -11,4 +11,6 @@ public interface MensagemWhatsappRepository extends JpaRepository<MensagemWhatsa
     List<MensagemWhatsapp> findAllByOrderByDataRecebimentoDesc();
 
     Optional<MensagemWhatsapp> findFirstByTelefoneOrderByDataRecebimentoDesc(String telefone);
+
+    List<MensagemWhatsapp> findByClienteId(Long clienteId);
 }
