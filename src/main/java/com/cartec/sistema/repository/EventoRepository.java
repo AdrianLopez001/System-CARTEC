@@ -11,4 +11,6 @@ public interface EventoRepository extends JpaRepository<Evento, Long> {
     List<Evento> findByDataBetweenOrderByDataAscHoraAsc(LocalDate inicio, LocalDate fim);
 
     List<Evento> findByDemoTrue();
+
+    List<Evento> findByOrdemServicoId(Long osId);
 }

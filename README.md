@@ -1,54 +1,89 @@
-# Cartec Sistema
+# Cartec ERP — Service e Peças
 
-Base do sistema descrito em `docs/plano-sistema-java.docx`: dashboard, base histórica
-e projeções por percentual para a Cartec Service e Peças. Java 21 + Spring Boot 3,
-H2 embutido (fase local), pensado para crescer nas próximas fases sem trocar de stack.
+Sistema integrado de gestão, CRM, calendário, faturamento e atendimento WhatsApp em tempo real para a **Cartec Bosch Service (Natal/RN)**.
 
-## Como rodar
+Desenvolvido em **Java 21 + Spring Boot 3 + Thymeleaf + H2 Database** e bot de mensageria em **Node.js (Baileys)**.
 
-Não precisa ter Maven instalado — o projeto já vem com o Maven Wrapper.
+---
 
-```
+## 🚀 Como Iniciar o Sistema
+
+### 1. Iniciar o ERP (Java Spring Boot)
+No terminal da raiz do projeto, execute:
+
+```bash
+# No macOS / Linux:
+./mvnw spring-boot:run
+
+# No Windows:
 mvnw.cmd spring-boot:run
 ```
 
-Abre em `http://localhost:8080`. Os dados ficam em `./data/cartec.mv.db` (arquivo H2,
-criado automaticamente na primeira execução — não é apagado ao reiniciar).
+O sistema estará acessível em: **[http://localhost:8080](http://localhost:8080)**
 
-Console do banco (para inspecionar dados manualmente): `http://localhost:8080/h2-console`
-— JDBC URL `jdbc:h2:file:./data/cartec`, usuário `sa`, senha em branco.
+---
 
-## O que já existe (Fase 1 de `docs/plano-sistema-java.docx`)
+### 2. Iniciar a Conexão do WhatsApp (Tempo Real & IA)
+Em outro terminal, acesse a pasta `whatsapp-bot` e inicie o robô:
 
-- **Modelo de dados**: `OrdemServico`, `ItemServico`, `VendaDiaria`, `MetricaSemanal`,
-  `Meta`, `Projecao` — exatamente as entidades da seção 3 do plano.
-- **Motor de métricas** (`MetricaService`): variação % entre períodos, projeção do
-  próximo período, % da meta atingida e alerta de estagnação — as 4 fórmulas da seção 6.
-- **Dashboard** (`/`): tela "Visão da semana" (ticket médio atual, variação vs. semana
-  anterior, % da meta, gráfico de tendência).
-- **API REST**: CRUD básico de ordens de serviço, vendas diárias, metas e métricas
-  semanais (`/api/ordens-servico`, `/api/vendas-diarias`, `/api/metas`,
-  `/api/metricas-semanais`), mais os cálculos do motor de métricas expostos em
-  `/api/metricas/variacao`, `/api/metricas/projecao`, `/api/metricas/percentual-meta`.
-- **Ingestão** (`/api/ingestao/*`): já lê o PDF/XLS enviado e conta linhas, mas o
-  mapeamento campo-a-campo para as entidades ainda é TODO (ver `IngestaoService`) —
-  falta confirmar o layout exato do export atual da Oficina Inteligente antes de escrever
-  o parser (colunas do XLS, formato das tabelas do PDF).
+```bash
+cd whatsapp-bot
+node index.js
+```
 
-## Próximos passos sugeridos (Fases 2-5 do plano)
+---
 
-1. Confirmar o layout de `ConferenciaOS.pdf` / `ConferenciaOSItem.xls` / `VendaPorDia.pdf`
-   e completar o parser em `IngestaoService`.
-2. Tela de conferência antes de gravar (total importado x esperado).
-3. Formulário semanal no próprio dashboard (hoje só existe via API).
-4. Telas adicionais: B2B/Frotas, Margem, Projeção, Histórico completo.
-5. Alertas automáticos de estagnação no dashboard (o cálculo já existe em
-   `MetricaService.verificarEstagnacao`, falta ligar na tela).
+## 📱 Como Conectar e Atender pelo WhatsApp
 
-## Notas de stack
+1. Com o ERP e o bot rodando, acesse **[http://localhost:8080/whatsapp](http://localhost:8080/whatsapp)**.
+2. O sistema exibirá o **badge de status** e o **QR Code** diretamente na tela.
+3. No celular da oficina:
+   - Abra o WhatsApp > **Aparelhos Conectados** > **Conectar um Aparelho**.
+   - Escaneie o QR Code exibido no navegador.
+4. O status mudará automaticamente para **`CONECTADO`**.
+5. As mensagens recebidas serão classificadas por IA (intenção, urgência, consultor) e você poderá **responder diretamente pela interface do ERP**.
 
-- Sem Lombok: o JDK usado nesta máquina (26) ainda não é compatível com a versão de
-  Lombok trazida pelo Spring Boot 3.3.5, então as entidades têm getters/setters
-  escritos à mão. Se um dia trocar para um JDK mais antigo (21 LTS) e quiser reduzir
-  boilerplate, dá para reavaliar.
-- `spring-boot-devtools` incluído para reiniciar automaticamente ao salvar código.
+---
+
+## 📤 Como Fazer Carga de Dados Reais (Importação)
+
+Para cadastrar seus clientes e histórico de faturamento sem digitar nada manualmente:
+
+1. Acesse **[http://localhost:8080/importacao](http://localhost:8080/importacao)** (ou o menu *Importar Dados*).
+2. Você poderá fazer o upload de:
+   - **Planilha de Clientes (`ListaContatos.xlsx`)**: Importa nome, CPF, CNPJ, telefone, e-mail e tags.
+   - **Conferência de OS (`ConferenciaOS.pdf` ou `.xlsx`)**: Importa ordens de serviço e histórico de faturamento.
+   - **Vendas Por Mês (`VendasPorMes.pdf`)**: Atualiza faturamento mensal, ticket médio e gráficos.
+   - **Agenda de Serviços (`Agenda.pdf`)**: Aloca automaticamente os agendamentos no calendário.
+
+---
+
+## ⚙️ Alternando do Modo Demonstração para Dados Reais
+
+Quando o sistema é iniciado pela primeira vez, ele vem com o **Modo Demonstração** opcional ativado com dados de exemplo.
+
+Para iniciar a operação real da oficina:
+1. Acesse **[http://localhost:8080/configuracoes](http://localhost:8080/configuracoes)**.
+2. Clique no botão **Desativar modo de demonstração**.
+3. O sistema limpará com segurança todos os dados de teste e manterá a base limpa para a entrada dos seus dados reais via tela de Importação.
+
+---
+
+## 🛠️ Estrutura do Projeto e Módulos principais
+
+- `/` — **Dashboard**: Ticket médio, variação semanal, projeção mensal e gráficos.
+- `/calendario` — **Calendário**: Visão de agendamentos com modal interativo para visualizar, editar e excluir eventos.
+- `/clientes` — **Clientes & Empresas**: Abas separadas para Pessoa Física (PF), Pessoa Jurídica (PJ) e Empresas/Frotas.
+- `/ordens-servico` — **Faturamento**: Listagem e conferência de Ordens de Serviço.
+- `/whatsapp` — **Central WhatsApp**: QR Code em tempo real, status da conexão, caixa de entrada IA e envio de mensagens pelo ERP.
+- `/importacao` — **Carga de Dados**: Upload de planilhas de contatos e relatórios em PDF/XLS.
+- `/configuracoes` — **Configurações**: Chaveamento do modo demonstração e reset de dados.
+
+---
+
+## 💻 Console do Banco de Dados Local (H2)
+Para inspecionar o banco de dados diretamente no navegador:
+- **URL**: `http://localhost:8080/h2-console`
+- **JDBC URL**: `jdbc:h2:file:./data/cartec`
+- **Usuário**: `sa`
+- **Senha**: *(em branco)*

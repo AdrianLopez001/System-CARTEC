@@ -115,24 +115,38 @@ public class DemoDataService {
 
     @Transactional
     public void desativar() {
-        // 1. Desvincular e deletar itens de servico de OS demo
+        // 1. Deletar primeiro os eventos, tarefas e notas demo (que dependem de OS, Cliente e Empresa)
+        java.util.List<Evento> eventosDemo = eventoRepository.findByDemoTrue();
+        eventoRepository.deleteAll(eventosDemo);
+
+        java.util.List<Tarefa> tarefasDemo = tarefaRepository.findByDemoTrue();
+        tarefaRepository.deleteAll(tarefasDemo);
+
+        java.util.List<Nota> notasDemo = notaRepository.findByDemoTrue();
+        notaRepository.deleteAll(notasDemo);
+
+        // 2. Desvincular qualquer Evento restante que aponte para OS demo
         java.util.List<OrdemServico> osDemo = ordemServicoRepository.findByDemoTrue();
         for (OrdemServico os : osDemo) {
+            java.util.List<Evento> evs = eventoRepository.findByOrdemServicoId(os.getId());
+            for (Evento e : evs) {
+                e.setOrdemServico(null);
+                eventoRepository.save(e);
+            }
             if (os.getItens() != null && !os.getItens().isEmpty()) {
                 itemServicoRepository.deleteAll(os.getItens());
             }
         }
+
+        // 3. Deletar Ordens de Servico demo
         ordemServicoRepository.deleteAll(osDemo);
 
-        // 2. Deletar entidades demo dependentes
-        eventoRepository.deleteAll(eventoRepository.findByDemoTrue());
-        tarefaRepository.deleteAll(tarefaRepository.findByDemoTrue());
-        notaRepository.deleteAll(notaRepository.findByDemoTrue());
+        // 4. Deletar Campanhas, Metricas e Metas demo
         campanhaRepository.deleteAll(campanhaRepository.findByDemoTrue());
         metricaSemanalRepository.deleteAll(metricaSemanalRepository.findByDemoTrue());
         metaRepository.deleteAll(metaRepository.findByDemoTrue());
 
-        // 3. Desvincular clientes demo de mensagens WhatsApp
+        // 5. Desvincular clientes demo de mensagens WhatsApp
         java.util.List<Cliente> clientesDemo = clienteRepository.findByDemoTrue();
         for (Cliente c : clientesDemo) {
             java.util.List<MensagemWhatsapp> msgs = mensagemWhatsappRepository.findByClienteId(c.getId());
@@ -142,7 +156,7 @@ public class DemoDataService {
             }
         }
 
-        // 4. Desvincular empresas demo dos clientes
+        // 6. Desvincular empresas demo dos clientes
         java.util.List<Empresa> empresasDemo = empresaRepository.findByDemoTrue();
         for (Empresa emp : empresasDemo) {
             java.util.List<Cliente> contatos = clienteRepository.findByEmpresaId(emp.getId());
@@ -152,7 +166,7 @@ public class DemoDataService {
             }
         }
 
-        // 5. Deletar clientes e empresas demo
+        // 7. Deletar clientes e empresas demo
         clienteRepository.deleteAll(clientesDemo);
         empresaRepository.deleteAll(empresasDemo);
 
