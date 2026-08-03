@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Cartec — Importação de Dados e Arquivos</title>
+    <style th:replace="~{fragments/estilos :: base}"></style>
+    <style>
+        .grid-importacao { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-top: 20px; }
+        .upload-card { display: flex; flex-direction: column; justify-content: space-between; }
+        .upload-area { border: 2px dashed var(--grid); border-radius: 8px; padding: 20px; text-align: center; background: #fafafa; transition: border-color 0.2s; }
+        .upload-area:hover { border-color: #3b82f6; }
+        .resultado-box { margin-top: 12px; font-size: 0.85rem; padding: 8px 12px; border-radius: 4px; display: none; }
+        .resultado-box.sucesso { background: #d1fae5; color: #065f46; display: block; }
+        .resultado-box.erro { background: #fee2e2; color: #991b1b; display: block; }
+    </style>
+</head>
+<body>
+<header th:replace="~{fragments/nav :: topbar}"></header>
+
+<div class="page-header">
+    <div>
+        <h1>Central de Importação & Carga de Dados</h1>
+        <p>Importe facilmente suas planilhas de clientes e relatórios em PDF do sistema da oficina</p>
+    </div>
+</div>
+
+<main>
+    <div class="grid-importacao">
+
+        <!-- CARD 1: CLIENTES -->
+        <section class="card upload-card">
+            <div>
+                <h2 style="margin-top:0;">👥 Importar Clientes & Contatos</h2>
+                <p class="descricao">
+                    Suba a planilha <code>ListaContatos.xlsx</code> com nome, telefone, e-mail e tag para cadastrar ou atualizar os clientes em lote.
+                </p>
+                <form id="formClientes" enctype="multipart/form-data">
+                    <div class="upload-area">
+                        <label for="fileClientes" style="cursor:pointer; display:block;">
+                            <span style="font-size:2rem; display:block; margin-bottom:8px;">📊</span>
+                            <strong>Clique aqui para escolher a planilha (.xlsx)</strong>
+                        </label>
+                        <input type="file" id="fileClientes" accept=".xlsx,.xls" required style="margin-top:10px;">
+                    </div>
+                    <button type="submit" class="botao" style="width:100%; margin-top:16px;">Processar Planilha de Clientes 🚀</button>
+                </form>
+            </div>
+            <div id="resClientes" class="resultado-box"></div>
+        </section>
+
+        <!-- CARD 2: CONFERENCIA DE OS -->
+        <section class="card upload-card">
+            <div>
+                <h2 style="margin-top:0;">📑 Importar Conferência de OS (PDF/XLS)</h2>
+                <p class="descricao">
+                    Suba o arquivo <code>ConferenciaOS.pdf</code> ou <code>ConferenciaOS.xlsx</code> exportado do seu sistema de gestão para importar todas as Ordens de Serviço.
+                </p>
+                <form id="formOs" enctype="multipart/form-data">
+                    <div class="upload-area">
+                        <label for="fileOs" style="cursor:pointer; display:block;">
+                            <span style="font-size:2rem; display:block; margin-bottom:8px;">📄</span>
+                            <strong>Clique aqui para escolher o arquivo (.pdf ou .xlsx)</strong>
+                        </label>
+                        <input type="file" id="fileOs" accept=".pdf,.xlsx,.xls" required style="margin-top:10px;">
+                    </div>
+                    <button type="submit" class="botao" style="width:100%; margin-top:16px;">Importar Ordens de Serviço 🛠️</button>
+                </form>
+            </div>
+            <div id="resOs" class="resultado-box"></div>
+        </section>
+
+        <!-- CARD 3: VENDAS POR MÊS / FATURAMENTO -->
+        <section class="card upload-card">
+            <div>
+                <h2 style="margin-top:0;">💰 Importar Faturamento Mensal (PDF)</h2>
+                <p class="descricao">
+                    Suba o relatório <code>VendasPorMes.pdf</code> para atualizar o faturamento, ticket médio e gráfico histórico do financeiro.
+                </p>
+                <form id="formVendas" enctype="multipart/form-data">
+                    <div class="upload-area">
+                        <label for="fileVendas" style="cursor:pointer; display:block;">
+                            <span style="font-size:2rem; display:block; margin-bottom:8px;">📈</span>
+                            <strong>Clique aqui para escolher o relatório (.pdf)</strong>
+                        </label>
+                        <input type="file" id="fileVendas" accept=".pdf" required style="margin-top:10px;">
+                    </div>
+                    <button type="submit" class="botao" style="width:100%; margin-top:16px;">Atualizar Faturamento Mensal 💸</button>
+                </form>
+            </div>
+            <div id="resVendas" class="resultado-box"></div>
+        </section>
+
+        <!-- CARD 4: AGENDA DE SERVIÇOS -->
+        <section class="card upload-card">
+            <div>
+                <h2 style="margin-top:0;">📅 Importar Agenda de Serviços (PDF)</h2>
+                <p class="descricao">
+                    Suba o relatório <code>Agenda.pdf</code> para povoar os agendamentos de veículos diretamente no calendário.
+                </p>
+                <form id="formAgenda" enctype="multipart/form-data">
+                    <div class="upload-area">
+                        <label for="fileAgenda" style="cursor:pointer; display:block;">
+                            <span style="font-size:2rem; display:block; margin-bottom:8px;">🗓️</span>
+                            <strong>Clique aqui para escolher a agenda (.pdf)</strong>
+                        </label>
+                        <input type="file" id="fileAgenda" accept=".pdf" required style="margin-top:10px;">
+                    </div>
+                    <button type="submit" class="botao" style="width:100%; margin-top:16px;">Carregar no Calendário 📅</button>
+                </form>
+            </div>
+            <div id="resAgenda" class="resultado-box"></div>
+        </section>
+
+    </div>
+</main>
+
+<script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
+<script>
+    async function enviarArquivo(url, fileInputId, resBoxId) {
+        const fileInput = document.getElementById(fileInputId);
+        const resBox = document.getElementById(resBoxId);
+        if (!fileInput.files.length) return;
+
+        const formData = new FormData();
+        formData.append('arquivo', fileInput.files[0]);
+
+        resBox.className = 'resultado-box';
+        resBox.style.display = 'block';
+        resBox.textContent = 'Processando arquivo...';
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            if (response.ok) {
+                resBox.className = 'resultado-box sucesso';
+                let msg = `Sucesso! Total lido: ${data.totalLinhas || 0}, Registros gravados: ${data.totalGravados || 0}.`;
+                if (data.divergencias && data.divergencias.length) {
+                    msg += ` (${data.divergencias.length} alertas em linhas especificas)`;
+                }
+                resBox.textContent = msg;
+            } else {
+                resBox.className = 'resultado-box erro';
+                resBox.textContent = `Erro ao importar: ${data.message || 'Verifique o formato do arquivo.'}`;
+            }
+        } catch (err) {
+            resBox.className = 'resultado-box erro';
+            resBox.textContent = `Erro de rede: ${err.message}`;
+        }
+    }
+
+    document.getElementById('formClientes').addEventListener('submit', (e) => {
+        e.preventDefault();
+        enviarArquivo('/api/clientes/upload-completo', 'fileClientes', 'resClientes');
+    });
+
+    document.getElementById('formOs').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const file = document.getElementById('fileOs').files[0];
+        const endpoint = file && file.name.endsWith('.pdf') ? '/api/ingestao/conferencia-os-pdf' : '/api/ingestao/conferencia-os-xlsx';
+        enviarArquivo(endpoint, 'fileOs', 'resOs');
+    });
+
+    document.getElementById('formVendas').addEventListener('submit', (e) => {
+        e.preventDefault();
+        enviarArquivo('/api/ingestao/vendas-por-mes-pdf', 'fileVendas', 'resVendas');
+    });
+
+    document.getElementById('formAgenda').addEventListener('submit', (e) => {
+        e.preventDefault();
+        enviarArquivo('/api/ingestao/agenda-pdf', 'fileAgenda', 'resAgenda');
+    });
+</script>
+</body>
+</html>

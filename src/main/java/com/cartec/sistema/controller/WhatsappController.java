@@ -75,6 +75,15 @@ public class WhatsappController {
         try {
             Map<String, String> req = Map.of("telefone", telefone, "texto", texto);
             Map<String, Object> resposta = restTemplate.postForObject(botUrl + "/send", req, Map.class);
+
+            MensagemWhatsapp msgEnviada = new MensagemWhatsapp();
+            msgEnviada.setTelefone(telefone);
+            msgEnviada.setResumo("Mensagem enviada via ERP: " + texto);
+            msgEnviada.setDataRecebimento(java.time.LocalDateTime.now());
+            msgEnviada.setLida(true);
+            msgEnviada.setClienteNomeIa("Envio ERP");
+            mensagemRepository.save(msgEnviada);
+
             return resposta != null ? resposta : Map.of("ok", true);
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao enviar mensagem via bot: " + e.getMessage());
