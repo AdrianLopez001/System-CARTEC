@@ -98,6 +98,7 @@
 </main>
 
 <script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
+<script th:replace="~{fragments/scripts :: escape-html}"></script>
 <script>
     document.getElementById('formUpload').addEventListener('submit', async (evento) => {
         evento.preventDefault();
@@ -123,7 +124,7 @@
             caixaResultado.className = 'resultado ok';
             let html = `Lidas: ${resultado.totalLinhasLidas} · Gravadas: ${resultado.totalGravado}`;
             if (resultado.divergencias && resultado.divergencias.length) {
-                html += '<ul>' + resultado.divergencias.map(d => `<li>${d}</li>`).join('') + '</ul>';
+                html += '<ul>' + resultado.divergencias.map(d => `<li>${escapeHtml(d)}</li>`).join('') + '</ul>';
             }
             html += '<br>Recarregando em 2s...';
             caixaResultado.innerHTML = html;

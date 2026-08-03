@@ -125,6 +125,7 @@
 </main>
 
 <script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
+<script th:replace="~{fragments/scripts :: escape-html}"></script>
 <script>
     const modoGrupo = document.getElementById('modoGrupo');
     const blocoTag = document.getElementById('blocoTag');
@@ -179,7 +180,7 @@
             caixaResultado.className = 'resultado ok';
             let html = `Lidas: ${resultado.totalLinhasLidas} · Gravadas: ${resultado.totalGravado}`;
             if (resultado.divergencias && resultado.divergencias.length) {
-                html += '<ul>' + resultado.divergencias.map(d => `<li>${d}</li>`).join('') + '</ul>';
+                html += '<ul>' + resultado.divergencias.map(d => `<li>${escapeHtml(d)}</li>`).join('') + '</ul>';
             }
             caixaResultado.innerHTML = html;
         } catch (erro) {
@@ -209,7 +210,7 @@
             caixaResultado.className = 'resultado ok';
             let html = `Lidas: ${resultado.totalLinhasLidas} · Gravadas: ${resultado.totalGravado}`;
             if (resultado.divergencias && resultado.divergencias.length) {
-                html += '<ul>' + resultado.divergencias.map(d => `<li>${d}</li>`).join('') + '</ul>';
+                html += '<ul>' + resultado.divergencias.map(d => `<li>${escapeHtml(d)}</li>`).join('') + '</ul>';
             }
             html += '<br>Recarregando em 2s...';
             caixaResultado.innerHTML = html;

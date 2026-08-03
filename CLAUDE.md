@@ -12,10 +12,8 @@ Este projeto tem dois objetivos que se conectam:
 ## Estado atual — decisões já fechadas (não reabrir sem motivo forte)
 
 - **Plataforma de atendimento:** BotConversa (Opção A) — decisão fechada, custo x tempo técnico não compensa alternativa.
-- **Stack do sistema:** Java 21 + Spring Boot 3, banco relacional (H2 local → PostgreSQL quando for pra produção), Apache PDFBox + Apache POI para ingestão de PDF/XLS, Chart.js no front.
-- **Hospedagem:** decisão de escopo em duas fases —
-  - **Fase local (agora):** `java -jar`, H2 embutido, roda no computador da Cartec, sem custo de hospedagem.
-  - **Fase remota (depois, quando o uso local estiver validado):** trocar H2 por PostgreSQL gerenciado (Railway/Neon/Supabase) e subir o mesmo JAR em Railway, Render ou Fly.io — **não** na Vercel, que não hospeda bem app Java com estado (Spring Boot + banco persistente). Vercel só entraria, opcionalmente, se um dia o front-end virar um projeto React separado do back-end Java.
+- **Stack do sistema:** Java 21 + Spring Boot 3, banco relacional (H2 em arquivo, inclusive em produção — ver decisão de hospedagem abaixo), Apache PDFBox + Apache POI para ingestão de PDF/XLS, Chart.js no front, Spring Security (login único) a partir de 03/08/2026.
+- **Hospedagem:** decisão fechada em 03/08/2026 — **Hostinger VPS** (Ubuntu 22.04, Docker Compose), não Railway/Render/Fly.io como estava previsto antes. Motivo: o VPS tem disco persistente (diferente de PaaS efêmero), então H2 em arquivo dentro de um volume Docker é suficiente — sem precisar de PostgreSQL gerenciado por enquanto. Runbook completo de deploy em `DEPLOY.md`. Migrar pra PostgreSQL fica em aberto pra quando/se o uso justificar.
 
 ## Ordem de execução (resumo da estratégia priorizada)
 
@@ -59,4 +57,4 @@ getters/setters). Entidades usam getters/setters escritos à mão.
 
 - Pacotes Java: `com.cartec.sistema` (`model`, `repository`, `service`, `controller`, `dto`)
 - Padrão de commits: a definir
-- Testes: a definir — projeto ainda não tem testes automatizados
+- Testes: `src/test/java` — `FunilAtendimentoFlowTest` (MockMvc, fluxo completo do funil de atendimento) é o principal; roda com `@WithMockUser` já que o login está ativo

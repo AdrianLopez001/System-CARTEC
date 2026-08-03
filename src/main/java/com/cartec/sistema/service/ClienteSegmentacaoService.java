@@ -47,12 +47,12 @@ public class ClienteSegmentacaoService {
     }
 
     public Map<Long, Metricas> calcularParaTodos() {
-        List<OrdemServico> ordens = ordemServicoRepository.findByClienteCadastroIsNotNull();
+        List<OrdemServico> ordens = ordemServicoRepository.findByClienteCadastroIsNotNullAndDemoFalse();
         Map<Long, List<OrdemServico>> porCliente = ordens.stream()
                 .collect(Collectors.groupingBy(os -> os.getClienteCadastro().getId()));
 
         Map<Long, Metricas> resultado = new HashMap<>();
-        for (Cliente cliente : clienteRepository.findAll()) {
+        for (Cliente cliente : clienteRepository.findByDemoFalse()) {
             List<OrdemServico> ordensDoCliente = porCliente.get(cliente.getId());
             Metricas metricas = (ordensDoCliente != null && !ordensDoCliente.isEmpty())
                     ? calcularDeOrdens(ordensDoCliente)

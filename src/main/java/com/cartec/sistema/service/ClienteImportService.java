@@ -11,6 +11,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -37,6 +38,7 @@ public class ClienteImportService {
         this.clienteRepository = clienteRepository;
     }
 
+    @Transactional
     public ResultadoImportacao importarXlsx(MultipartFile arquivo) throws IOException {
         try (InputStream in = arquivo.getInputStream();
              Workbook workbook = WorkbookFactory.create(in)) {
@@ -93,6 +95,7 @@ public class ClienteImportService {
      * telefone padronizado. Nao mexe em tag/observacoes/empresa - campos que
      * nao vem nesse export, pra nao apagar o que ja foi curado manualmente.
      */
+    @Transactional
     public ResultadoImportacao importarListaContatosCompletaXlsx(MultipartFile arquivo) throws IOException {
         try (InputStream in = arquivo.getInputStream();
              Workbook workbook = WorkbookFactory.create(in)) {

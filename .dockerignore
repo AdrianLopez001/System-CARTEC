@@ -1,0 +1,9 @@
+target/
+data/
+*.log
+.idea/
+.vscode/
+.git/
+.github/
+whatsapp-bot/
+docs/

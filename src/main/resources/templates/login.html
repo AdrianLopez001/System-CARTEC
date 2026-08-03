@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Cartec — Login</title>
+    <style th:replace="~{fragments/estilos :: base}"></style>
+    <style>
+        .login-shell { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .login-card { width: 100%; max-width: 360px; }
+        .login-card h1 { font-size: 1.15rem; margin: 0 0 4px; }
+        .login-card .marca-caixa { background: var(--brand); color: #fff; font-weight: 800; font-size: 0.85rem; padding: 4px 7px; border-radius: 3px; display: inline-block; margin-bottom: 14px; }
+    </style>
+</head>
+<body>
+<div class="login-shell">
+    <section class="card login-card">
+        <span class="marca-caixa">CS</span>
+        <h1>Cartec Service</h1>
+        <p class="descricao">Entre com seu usuário para acessar o sistema.</p>
+
+        <div class="resultado erro" th:if="${param.error}">Usuário ou senha inválidos.</div>
+        <div class="resultado ok" th:if="${param.logout}">Você saiu do sistema.</div>
+
+        <form method="post" th:action="@{/login}">
+            <label for="username">Usuário</label>
+            <input type="text" id="username" name="username" required autofocus>
+
+            <label for="password">Senha</label>
+            <input type="password" id="password" name="password" required>
+
+            <button type="submit" class="botao" style="width:100%;">Entrar</button>
+        </form>
+    </section>
+</div>
+</body>
+</html>

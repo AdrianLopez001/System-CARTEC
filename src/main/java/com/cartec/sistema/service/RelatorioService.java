@@ -53,7 +53,7 @@ public class RelatorioService {
     }
 
     private List<Linha> gerarOrdensServico(String agruparPor, String metrica) {
-        List<OrdemServico> dados = ordemServicoRepository.findAll();
+        List<OrdemServico> dados = ordemServicoRepository.findByDemoFalse();
         Function<OrdemServico, String> chave = switch (agruparPor) {
             case "responsavel" -> os -> valorOuIndefinido(os.getResponsavel());
             case "regraNegociacao" -> os -> valorOuIndefinido(os.getRegraNegociacao());
@@ -70,7 +70,7 @@ public class RelatorioService {
     }
 
     private List<Linha> gerarClientes(String agruparPor, String metrica) {
-        List<Cliente> dados = clienteRepository.findAll();
+        List<Cliente> dados = clienteRepository.findByDemoFalse();
         Map<Long, ClienteSegmentacaoService.Metricas> metricasPorCliente = segmentacaoService.calcularParaTodos();
 
         Function<Cliente, String> chave = switch (agruparPor) {

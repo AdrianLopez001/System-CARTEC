@@ -18,6 +18,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -51,11 +52,13 @@ public class IngestaoService {
         this.eventoRepository = eventoRepository;
     }
 
+    @Transactional
     public ResultadoImportacao importarConferenciaOsPdf(MultipartFile arquivo) throws IOException {
         String texto = extrairTextoPdf(arquivo);
         return gravarOrdens(ConferenciaOsParser.parse(texto));
     }
 
+    @Transactional
     public ResultadoImportacao importarConferenciaOsXlsx(MultipartFile arquivo) throws IOException {
         ConferenciaOsParser.Resultado resultado;
         try (InputStream in = arquivo.getInputStream();
@@ -116,6 +119,7 @@ public class IngestaoService {
         }
     }
 
+    @Transactional
     public ResultadoImportacao importarVendasPorMesPdf(MultipartFile arquivo) throws IOException {
         String texto = extrairTextoPdf(arquivo);
         VendasPorMesParser.Resultado resultado = VendasPorMesParser.parse(texto);
@@ -147,6 +151,7 @@ public class IngestaoService {
         return new ResultadoImportacao(totalLinhas, totalGravado, divergencias);
     }
 
+    @Transactional
     public ResultadoImportacao importarAgendaPdf(MultipartFile arquivo) throws IOException {
         String texto = extrairTextoPdf(arquivo);
         AgendaParser.Resultado resultado = AgendaParser.parse(texto);

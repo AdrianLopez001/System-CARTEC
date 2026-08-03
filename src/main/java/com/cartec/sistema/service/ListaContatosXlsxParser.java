@@ -48,7 +48,7 @@ public final class ListaContatosXlsxParser {
                 continue;
             }
             try {
-                contatos.add(parseLinha(linha, colunas));
+                contatos.add(parseLinha(linha, colunas, divergencias));
             } catch (RuntimeException e) {
                 divergencias.add("Linha " + (linha.getRowNum() + 1) + ": " + e.getMessage());
             }
@@ -57,7 +57,7 @@ public final class ListaContatosXlsxParser {
         return new Resultado(contatos, divergencias);
     }
 
-    private static ContatoImportado parseLinha(Row linha, Map<String, Integer> colunas) {
+    private static ContatoImportado parseLinha(Row linha, Map<String, Integer> colunas, List<String> divergencias) {
         String nome = texto(linha, colunas, "nome");
         if (nome == null || nome.isBlank()) {
             throw new IllegalArgumentException("nome vazio, ignorada");
@@ -78,7 +78,7 @@ public final class ListaContatosXlsxParser {
         c.nome = nome;
         c.sexo = texto(linha, colunas, "sexo");
         c.telefoneBruto = telefone;
-        c.dataNascimento = dataSemSentinela(texto(linha, colunas, "data de nascimento"));
+        c.dataNascimento = dataSemSentinela(texto(linha, colunas, "data de nascimento"), linha, "data de nascimento", divergencias);
         c.tipoPessoa = texto(linha, colunas, "física/jurídica");
         c.email = texto(linha, colunas, "e-mail");
         c.enderecoLogradouro = texto(linha, colunas, "endereço");
@@ -87,13 +87,13 @@ public final class ListaContatosXlsxParser {
         c.cidade = texto(linha, colunas, "cidade");
         c.uf = texto(linha, colunas, "uf");
         c.cep = texto(linha, colunas, "cep");
-        c.dataCadastro = dataSemSentinela(texto(linha, colunas, "data de cadastro"));
-        c.ultimaVendaData = dataSemSentinela(texto(linha, colunas, "última venda - data"));
+        c.dataCadastro = dataSemSentinela(texto(linha, colunas, "data de cadastro"), linha, "data de cadastro", divergencias);
+        c.ultimaVendaData = dataSemSentinela(texto(linha, colunas, "última venda - data"), linha, "ultima venda - data", divergencias);
         c.ultimaVendaVeiculo = texto(linha, colunas, "última venda - veículo");
         c.ultimaVendaPlaca = texto(linha, colunas, "última venda - placa");
-        c.totalGastoHistorico = valorMonetario(texto(linha, colunas, "r$ total gasto"));
-        c.qtdOsHistorico = valorInteiro(texto(linha, colunas, "qtd. de os"));
-        c.mediaGastoHistorico = valorMonetario(texto(linha, colunas, "r$ média gasto"));
+        c.totalGastoHistorico = valorMonetario(texto(linha, colunas, "r$ total gasto"), linha, "r$ total gasto", divergencias);
+        c.qtdOsHistorico = valorInteiro(texto(linha, colunas, "qtd. de os"), linha, "qtd. de os", divergencias);
+        c.mediaGastoHistorico = valorMonetario(texto(linha, colunas, "r$ média gasto"), linha, "r$ media gasto", divergencias);
         return c;
     }
 
@@ -137,7 +137,7 @@ public final class ListaContatosXlsxParser {
         return null;
     }
 
-    private static LocalDate dataSemSentinela(String texto) {
+    private static LocalDate dataSemSentinela(String texto, Row linha, String rotulo, List<String> divergencias) {
         if (texto == null || texto.isBlank()) {
             return null;
         }
@@ -145,28 +145,34 @@ public final class ListaContatosXlsxParser {
             LocalDate data = LocalDate.parse(texto.trim(), FORMATO_DATA_HORA);
             return data.equals(DATA_SENTINELA) ? null : data;
         } catch (DateTimeParseException e) {
+            divergencias.add("Linha " + (linha.getRowNum() + 1) + ": campo \"" + rotulo
+                    + "\" com data nao reconhecida (\"" + texto + "\"), ignorado");
             return null;
         }
     }
 
-    private static BigDecimal valorMonetario(String texto) {
+    private static BigDecimal valorMonetario(String texto, Row linha, String rotulo, List<String> divergencias) {
         if (texto == null || texto.isBlank()) {
             return null;
         }
         try {
             return new BigDecimal(texto.trim().replace(".", "").replace(",", "."));
         } catch (NumberFormatException e) {
+            divergencias.add("Linha " + (linha.getRowNum() + 1) + ": campo \"" + rotulo
+                    + "\" com valor monetario nao reconhecido (\"" + texto + "\"), ignorado");
             return null;
         }
     }
 
-    private static Integer valorInteiro(String texto) {
+    private static Integer valorInteiro(String texto, Row linha, String rotulo, List<String> divergencias) {
         if (texto == null || texto.isBlank()) {
             return null;
         }
         try {
             return (int) Double.parseDouble(texto.trim().replace(",", "."));
         } catch (NumberFormatException e) {
+            divergencias.add("Linha " + (linha.getRowNum() + 1) + ": campo \"" + rotulo
+                    + "\" com numero nao reconhecido (\"" + texto + "\"), ignorado");
             return null;
         }
     }

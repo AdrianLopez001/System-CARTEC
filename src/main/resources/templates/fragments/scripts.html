@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<script th:fragment="escape-html">
+    function escapeHtml(texto) {
+        if (texto === null || texto === undefined) return '';
+        const div = document.createElement('div');
+        div.textContent = texto;
+        return div.innerHTML;
+    }
+</script>
+</body>
+</html>

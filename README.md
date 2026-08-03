@@ -82,8 +82,26 @@ Para iniciar a operação real da oficina:
 ---
 
 ## 💻 Console do Banco de Dados Local (H2)
-Para inspecionar o banco de dados diretamente no navegador:
+O console (`/h2-console`) fica **desligado por padrão** (ficaria exposto sem senha). Para
+usar durante desenvolvimento, rode com o profile local:
+
+```bash
+# Windows:
+set SPRING_PROFILES_ACTIVE=local && mvnw.cmd spring-boot:run
+# macOS/Linux:
+SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run
+```
+
 - **URL**: `http://localhost:8080/h2-console`
 - **JDBC URL**: `jdbc:h2:file:./data/cartec`
 - **Usuário**: `sa`
 - **Senha**: *(em branco)*
+
+## 🔐 Login
+
+O sistema pede login (usuário/senha em `application.properties`, padrão `admin`/`admin`
+só para teste local — trocar antes de qualquer deploy real).
+
+## 🚀 Deploy em produção
+
+Runbook completo (Docker Compose, Nginx, HTTPS) em [`DEPLOY.md`](DEPLOY.md).

@@ -49,7 +49,7 @@ public class FinanceiroService {
         Map<LocalDate, VendaMensal> geradoPorMes = vendaMensalRepository.findAllByOrderByMesAsc().stream()
                 .collect(Collectors.toMap(VendaMensal::getMes, v -> v, (a, b) -> a, TreeMap::new));
 
-        Map<LocalDate, BigDecimal> finalizadoPorMes = ordemServicoRepository.findAll().stream()
+        Map<LocalDate, BigDecimal> finalizadoPorMes = ordemServicoRepository.findByDemoFalse().stream()
                 .filter(os -> os.getData() != null && os.getValorTotal() != null)
                 .collect(Collectors.groupingBy(
                         os -> YearMonth.from(os.getData()).atDay(1),

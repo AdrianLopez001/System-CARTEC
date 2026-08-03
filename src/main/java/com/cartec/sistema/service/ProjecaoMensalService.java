@@ -43,7 +43,7 @@ public class ProjecaoMensalService {
         LocalDate hoje = LocalDate.now();
         boolean mesAtual = mes.equals(YearMonth.from(hoje));
 
-        List<OrdemServico> ordensDoMes = ordemServicoRepository.findAll().stream()
+        List<OrdemServico> ordensDoMes = ordemServicoRepository.findByDemoFalse().stream()
                 .filter(os -> {
                     LocalDate data = os.getDataFaturamento() != null ? os.getDataFaturamento() : os.getData();
                     return data != null && YearMonth.from(data).equals(mes);

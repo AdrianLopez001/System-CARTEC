@@ -1,0 +1,31 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+    environment:
+      APP_SECURITY_ADMIN_USERNAME: ${APP_SECURITY_ADMIN_USERNAME}
+      APP_SECURITY_ADMIN_PASSWORD: ${APP_SECURITY_ADMIN_PASSWORD}
+      WHATSAPP_BOT_TOKEN: ${WHATSAPP_BOT_TOKEN}
+      WHATSAPP_BOT_URL: http://whatsapp-bot:3001
+    restart: unless-stopped
+    depends_on:
+      - whatsapp-bot
+
+  whatsapp-bot:
+    build:
+      context: ./whatsapp-bot
+      dockerfile: Dockerfile
+    volumes:
+      - ./whatsapp-bot/sessao:/app/sessao
+    environment:
+      CARTEC_SISTEMA_URL: http://app:8080
+      CARTEC_SISTEMA_TOKEN: ${WHATSAPP_BOT_TOKEN}
+    # Sem "ports:" de proposito - a API de gerenciamento do bot (porta 3001,
+    # sem autenticacao propria e com CORS liberado) fica so na rede interna
+    # do Docker, so o servico "app" consegue chamar. Nao expor pro host/internet.
+    restart: unless-stopped

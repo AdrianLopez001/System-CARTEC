@@ -206,6 +206,7 @@
 </div>
 
 <script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
+<script th:replace="~{fragments/scripts :: escape-html}"></script>
 <script>
     let eventoAtualDs = null;
 
@@ -220,7 +221,7 @@
         document.getElementById('modalStatus').textContent = ds.status || 'Agendado';
         document.getElementById('modalDataHora').textContent = `${ds.data} · ${ds.hora}`;
         
-        document.getElementById('modalCliente').innerHTML = ds.clienteId ? `<a href="/clientes/${ds.clienteId}">${ds.cliente}</a>` : (ds.cliente || 'Não informado');
+        document.getElementById('modalCliente').innerHTML = ds.clienteId ? `<a href="/clientes/${encodeURIComponent(ds.clienteId)}">${escapeHtml(ds.cliente)}</a>` : escapeHtml(ds.cliente || 'Não informado');
         document.getElementById('modalEmpresa').textContent = ds.empresa || 'Não vinculada';
         document.getElementById('modalLocal').textContent = ds.local || 'Cartec Service';
         document.getElementById('modalResponsavel').textContent = ds.responsavel || 'Não atribuído';

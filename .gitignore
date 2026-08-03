@@ -12,3 +12,6 @@ data/
 whatsapp-bot/node_modules/
 whatsapp-bot/sessao/
 whatsapp-bot/.env
+
+# Deploy (Docker Compose): segredos reais nunca vao pro git, so o .env.example
+.env

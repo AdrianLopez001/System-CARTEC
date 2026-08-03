@@ -63,18 +63,18 @@ public final class ConferenciaOsXlsxParser {
 
             ConferenciaOsParser.OsImportada os = new ConferenciaOsParser.OsImportada();
             os.numero = numero;
-            os.data = valorData(linha, colunas.get("data os"));
+            os.data = valorData(linha, colunas.get("data os"), "data os", divergencias);
             os.cliente = valorTexto(linha, colunas.get("cliente"));
             os.status = valorTexto(linha, colunas.get("status"));
             os.responsavel = valorTexto(linha, colunas.get("responsavel"));
             os.placa = valorTexto(linha, colunas.get("placa"));
             os.regraNegociacao = valorTexto(linha, colunas.get("regra de negociacao"));
-            os.dataFinalizacao = valorData(linha, colunas.get("finalizada em"));
+            os.dataFinalizacao = valorData(linha, colunas.get("finalizada em"), "finalizada em", divergencias);
             os.abertaOuFinalizada = valorTexto(linha, colunas.get("aberta ou finalizada"));
-            os.dataFaturamento = valorData(linha, colunas.get("data do faturamento"));
-            os.valorProduto = valorMonetario(linha, colunas.get("r$ produto"));
-            os.valorServico = valorMonetario(linha, colunas.get("r$ servico"));
-            os.valorTotal = valorMonetario(linha, colunas.get("r$ total da os"));
+            os.dataFaturamento = valorData(linha, colunas.get("data do faturamento"), "data do faturamento", divergencias);
+            os.valorProduto = valorMonetario(linha, colunas.get("r$ produto"), "r$ produto", divergencias);
+            os.valorServico = valorMonetario(linha, colunas.get("r$ servico"), "r$ servico", divergencias);
+            os.valorTotal = valorMonetario(linha, colunas.get("r$ total da os"), "r$ total da os", divergencias);
             ordens.add(os);
         }
 
@@ -125,7 +125,7 @@ public final class ConferenciaOsXlsxParser {
         return texto.isEmpty() ? null : texto;
     }
 
-    private static LocalDate valorData(Row linha, Integer indiceColuna) {
+    private static LocalDate valorData(Row linha, Integer indiceColuna, String rotulo, List<String> divergencias) {
         if (indiceColuna == null) {
             return null;
         }
@@ -147,10 +147,12 @@ public final class ConferenciaOsXlsxParser {
                 // tenta o proximo formato
             }
         }
+        divergencias.add("Linha " + (linha.getRowNum() + 1) + ": campo \"" + rotulo
+                + "\" com data nao reconhecida (\"" + texto + "\"), ignorado");
         return null;
     }
 
-    private static BigDecimal valorMonetario(Row linha, Integer indiceColuna) {
+    private static BigDecimal valorMonetario(Row linha, Integer indiceColuna, String rotulo, List<String> divergencias) {
         if (indiceColuna == null) {
             return null;
         }
@@ -178,6 +180,8 @@ public final class ConferenciaOsXlsxParser {
         try {
             return new BigDecimal(limpo).setScale(2, RoundingMode.HALF_UP);
         } catch (NumberFormatException e) {
+            divergencias.add("Linha " + (linha.getRowNum() + 1) + ": campo \"" + rotulo
+                    + "\" com valor monetario nao reconhecido (\"" + texto + "\"), ignorado");
             return null;
         }
     }

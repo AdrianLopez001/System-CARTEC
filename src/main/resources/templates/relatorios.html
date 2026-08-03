@@ -55,6 +55,7 @@
 </main>
 
 <script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
+<script th:replace="~{fragments/scripts :: escape-html}"></script>
 <script th:inline="javascript">
     const camposPorFonte = /*[[${camposPorFonte}]]*/ {};
     const metricasPorFonte = /*[[${metricasPorFonte}]]*/ {};
@@ -99,7 +100,7 @@
             (rotulosCampo[selectAgrupar.value] || selectAgrupar.value);
 
         const corpoTabela = document.querySelector('#tabelaResultado tbody');
-        corpoTabela.innerHTML = linhas.map(l => `<tr><td>${l.chave}</td><td class="numero">${l.valor}</td></tr>`).join('');
+        corpoTabela.innerHTML = linhas.map(l => `<tr><td>${escapeHtml(l.chave)}</td><td class="numero">${escapeHtml(l.valor)}</td></tr>`).join('');
         document.getElementById('vazioResultado').style.display = linhas.length ? 'none' : 'block';
 
         const root = getComputedStyle(document.documentElement);
