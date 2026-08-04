@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cartec — Agente Financeiro</title>
+    <style th:replace="~{fragments/estilos :: base}"></style>
+    <style>
+        .recomendacoes { display: flex; flex-direction: column; gap: 10px; }
+        .recomendacao { background: color-mix(in srgb, var(--brand) 6%, var(--surface-1)); border-left: 3px solid var(--brand); border-radius: 8px; padding: 12px 16px; font-size: 0.88rem; line-height: 1.5; }
+        .variacao-positiva { color: var(--good); font-weight: 600; }
+        .variacao-negativa { color: var(--bad); font-weight: 600; }
+        .barra-ranking { height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; margin-top: 4px; }
+        .barra-ranking-fill { height: 100%; background: var(--brand); }
+        .barra-ranking-fill.pior { background: var(--muted); }
+    </style>
+</head>
+<body>
+<header th:replace="~{fragments/nav :: topbar}"></header>
+<div class="page-header">
+    <div>
+        <h1>Agente Financeiro</h1>
+        <p>Meta do mês, desempenho semanal e recomendações — a partir do Faturamento Diário e das Vendas por Produto importados.</p>
+    </div>
+</div>
+<main>
+    <section class="tiles">
+        <div class="tile">
+            <div class="label">Faturado no mês</div>
+            <div class="value" th:text="${'R$ ' + #numbers.formatDecimal(analise.projecao().valorAtual(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+        </div>
+        <div class="tile">
+            <div class="label">Meta do mês</div>
+            <div class="value" th:if="${analise.projecao().valorMeta() != null}"
+                 th:text="${'R$ ' + #numbers.formatDecimal(analise.projecao().valorMeta(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+            <div class="value dash" th:if="${analise.projecao().valorMeta() == null}">
+                <a th:href="@{/}">cadastre no Dashboard</a>
+            </div>
+        </div>
+        <div class="tile">
+            <div class="label">Projeção de fechamento</div>
+            <div class="value" th:text="${'R$ ' + #numbers.formatDecimal(analise.projecao().projecaoFechamento(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+        </div>
+        <div class="tile">
+            <div class="label">% da meta (atual → projetado)</div>
+            <div class="value" th:if="${analise.projecao().percentualMetaAtual() != null}"
+                 th:text="${#numbers.formatDecimal(analise.projecao().percentualMetaAtual(), 1, 'POINT', 1, 'COMMA') + '% → ' + #numbers.formatDecimal(analise.projecao().percentualMetaProjetado(), 1, 'POINT', 1, 'COMMA') + '%'}">0% → 0%</div>
+            <div class="value dash" th:if="${analise.projecao().percentualMetaAtual() == null}">sem meta</div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Recomendações</h2>
+        <p class="descricao">Geradas por regra a partir dos números abaixo — não é IA, é comparação direta (ritmo vs. meta, semana vs. semana anterior, categoria vs. categoria).</p>
+        <div class="recomendacoes">
+            <div class="recomendacao" th:each="r : ${analise.recomendacoes()}" th:text="${r}"></div>
+        </div>
+    </section>
+
+    <div class="grid-2">
+        <section class="card">
+            <h2>Desempenho semanal</h2>
+            <p class="descricao">Últimas semanas, calculado automaticamente das Ordens de Serviço faturadas.</p>
+            <div class="tabela-scroll">
+                <table th:unless="${analise.semanas().isEmpty()}">
+                    <thead>
+                    <tr>
+                        <th>Semana</th>
+                        <th>Faturamento</th>
+                        <th>Atendimentos</th>
+                        <th>Ticket médio</th>
+                        <th>Variação</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="s : ${analise.semanas()}">
+                        <td th:text="${#temporals.format(s.inicio(), 'dd/MM')} + ' – ' + ${#temporals.format(s.fim(), 'dd/MM')}">01/01 – 07/01</td>
+                        <td class="numero" th:text="${'R$ ' + #numbers.formatDecimal(s.faturamento(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                        <td class="numero" th:text="${s.qtdAtendimentos()}">0</td>
+                        <td class="numero" th:text="${'R$ ' + #numbers.formatDecimal(s.ticketMedio(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                        <td class="numero">
+                            <span th:if="${s.variacaoPercentual() == null}" class="vazio">—</span>
+                            <span th:if="${s.variacaoPercentual() != null and s.variacaoPercentual().signum() >= 0}"
+                                  class="variacao-positiva" th:text="${'+' + #numbers.formatDecimal(s.variacaoPercentual(), 1, 'POINT', 1, 'COMMA') + '%'}">+0%</span>
+                            <span th:if="${s.variacaoPercentual() != null and s.variacaoPercentual().signum() < 0}"
+                                  class="variacao-negativa" th:text="${#numbers.formatDecimal(s.variacaoPercentual(), 1, 'POINT', 1, 'COMMA') + '%'}">-0%</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <p class="vazio" th:if="${analise.semanas().isEmpty()}">Sem Ordens de Serviço importadas ainda — use o Faturamento Diário ou Importar Dados.</p>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Ranking de categorias</h2>
+            <p class="descricao" th:if="${analise.periodoRanking() != null}">
+                Período do último "Vendas por Produto" importado (fechado em <span th:text="${#temporals.format(analise.periodoRanking(), 'dd/MM/yyyy')}">01/01/2026</span>).
+            </p>
+            <p class="vazio" th:if="${analise.ranking().isEmpty()}">Nenhum "Vendas por Produto" importado ainda — use Importar Dados.</p>
+            <div th:unless="${analise.ranking().isEmpty()}">
+                <div th:each="c, iter : ${analise.ranking()}" style="margin-bottom:10px;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+                        <span th:text="${c.categoria()}">Categoria</span>
+                        <span th:text="${'R$ ' + #numbers.formatDecimal(c.faturamento(), 1, 'POINT', 2, 'COMMA') + ' (' + #numbers.formatDecimal(c.percentual(), 1, 'POINT', 1, 'COMMA') + '%)'}">R$ 0,00</span>
+                    </div>
+                    <div class="barra-ranking">
+                        <div th:class="${iter.index < 3} ? 'barra-ranking-fill' : 'barra-ranking-fill pior'"
+                             th:style="'width:' + ${c.percentual()} + '%'"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <section class="card">
+        <h2>Margem por categoria (mês atual)</h2>
+        <p class="descricao">Faturamento menos custo dos itens/serviços da Conferência de OS do mês, por grupo — ordenado da margem mais apertada pra mais folgada.</p>
+        <div class="tabela-scroll">
+            <table th:unless="${analise.margens().isEmpty()}">
+                <thead>
+                <tr>
+                    <th>Grupo</th>
+                    <th>Faturamento</th>
+                    <th>Custo</th>
+                    <th>Margem</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="m : ${analise.margens()}">
+                    <td th:text="${m.grupo()}">Grupo</td>
+                    <td class="numero" th:text="${'R$ ' + #numbers.formatDecimal(m.faturamento(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                    <td class="numero" th:text="${'R$ ' + #numbers.formatDecimal(m.custo(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                    <td class="numero" th:text="${#numbers.formatDecimal(m.margemPercentual(), 1, 'POINT', 1, 'COMMA') + '%'}">0%</td>
+                </tr>
+                </tbody>
+            </table>
+            <p class="vazio" th:if="${analise.margens().isEmpty()}">Sem Itens de OS importados pra esse mês ainda — use "Importar Itens da Conferência de OS".</p>
+        </div>
+    </section>
+</main>
+
+<script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
+</body>
+</html>
