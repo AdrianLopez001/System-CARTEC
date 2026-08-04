@@ -11,9 +11,12 @@ Este projeto tem dois objetivos que se conectam:
 
 ## Estado atual — decisões já fechadas (não reabrir sem motivo forte)
 
-- **Plataforma de atendimento:** BotConversa (Opção A) — decisão fechada, custo x tempo técnico não compensa alternativa.
+- **Plataforma de atendimento:** ~~BotConversa~~ — **revisado em 04/08/2026**: o disparo automático de WhatsApp foi construído usando o bot Baileys próprio que já existia no projeto (`whatsapp-bot/`), não o BotConversa. Decisão consciente do usuário (Adrian), sinalizada como desvio da estratégia original antes de implementar — ver `docs/resumo-sessao-disparo-automatico.md`. BotConversa não está mais no plano; o disparo automático (`/disparo-automatico`, `DisparoAutomaticoService`) e o chat manual (`/whatsapp`) rodam sobre Baileys.
+- **Ordem de execução:** o disparo automático (item 4 da lista abaixo) foi construído e testado em 04/08/2026, antes da "semana 3" prevista originalmente — outro desvio consciente, mantido.
 - **Stack do sistema:** Java 21 + Spring Boot 3, banco relacional (H2 em arquivo, inclusive em produção — ver decisão de hospedagem abaixo), Apache PDFBox + Apache POI para ingestão de PDF/XLS, Chart.js no front, Spring Security (login único) a partir de 03/08/2026.
 - **Hospedagem:** decisão fechada em 03/08/2026 — **Hostinger VPS** (Ubuntu 22.04, Docker Compose), não Railway/Render/Fly.io como estava previsto antes. Motivo: o VPS tem disco persistente (diferente de PaaS efêmero), então H2 em arquivo dentro de um volume Docker é suficiente — sem precisar de PostgreSQL gerenciado por enquanto. Runbook completo de deploy em `DEPLOY.md`. Migrar pra PostgreSQL fica em aberto pra quando/se o uso justificar.
+- **Segmentação de cliente:** `SegmentoCliente` usa cortes de 120/270 dias (ver `ClienteSegmentacaoService`) — mantidos como fonte de verdade. Uma planilha externa de classificação pontual usou 7/13 meses; não foi unificada, não altera o sistema.
+- **Plano de Atividade:** cenário oficial = **Agressivo** (220 atendimentos/mês, R$330.000/mês — mesma meta plena já travada abaixo). Ver `/plano-atividade` (`PlanoAtividadeService`), que reaproveita `ProjecaoMensalService`/`MetricaService` para ritmo e projeção, e introduz `CategoriaPlano`/`GrupoQuota`/`CenarioPlano` pra acompanhar as 8 iniciativas do `Plano_Atividade_Cartec_Aprovacao.docx`. Valores de bonificação por item seguem pendentes de definição do dono.
 
 ## Ordem de execução (resumo da estratégia priorizada)
 

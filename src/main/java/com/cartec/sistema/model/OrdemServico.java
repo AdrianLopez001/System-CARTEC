@@ -68,6 +68,10 @@ public class OrdemServico {
     @Column(name = "demo", nullable = false, columnDefinition = "boolean default false")
     private boolean demo = false;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "categoria_plano")
+    private CategoriaPlano categoriaPlano;
+
     @OneToMany(mappedBy = "ordemServico", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ItemServico> itens = new ArrayList<>();
 
@@ -213,5 +217,13 @@ public class OrdemServico {
 
     public void setDemo(boolean demo) {
         this.demo = demo;
+    }
+
+    public CategoriaPlano getCategoriaPlano() {
+        return categoriaPlano;
+    }
+
+    public void setCategoriaPlano(CategoriaPlano categoriaPlano) {
+        this.categoriaPlano = categoriaPlano;
     }
 }

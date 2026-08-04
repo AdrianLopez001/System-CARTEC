@@ -25,15 +25,18 @@ public class MensagemChatService {
     private final ConversaWhatsappRepository conversaRepository;
     private final ClienteRepository clienteRepository;
     private final WhatsappSseService sseService;
+    private final DisparoAutomaticoService disparoAutomaticoService;
 
     public MensagemChatService(MensagemChatRepository mensagemChatRepository,
                                 ConversaWhatsappRepository conversaRepository,
                                 ClienteRepository clienteRepository,
-                                WhatsappSseService sseService) {
+                                WhatsappSseService sseService,
+                                DisparoAutomaticoService disparoAutomaticoService) {
         this.mensagemChatRepository = mensagemChatRepository;
         this.conversaRepository = conversaRepository;
         this.clienteRepository = clienteRepository;
         this.sseService = sseService;
+        this.disparoAutomaticoService = disparoAutomaticoService;
     }
 
     public MensagemChat registrar(MensagemChatRequest req) {
@@ -57,6 +60,9 @@ public class MensagemChatService {
 
         atualizarConversa(telefone, req.getPushName(), direcao);
         sseService.enviarNovaMensagem(mensagem);
+        if (direcao == DirecaoMensagem.ENTRADA) {
+            disparoAutomaticoService.processarPossivelOptOut(telefone, req.getTexto());
+        }
 
         return mensagem;
     }

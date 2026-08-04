@@ -37,9 +37,18 @@ public class WhatsappSseService {
                 "direcao", mensagem.getDirecao().name(),
                 "dataHora", mensagem.getDataHora().toString()
         );
+        emitir("nova-mensagem", payload);
+    }
+
+    /**
+     * Canal generico reaproveitado pelo DisparoAutomaticoService para
+     * empurrar o progresso do disparo (evento "disparo-progresso") na mesma
+     * stream do chat - evita abrir uma segunda conexao SSE por aba.
+     */
+    public void emitir(String nomeEvento, Map<String, Object> payload) {
         for (SseEmitter emitter : emitters) {
             try {
-                emitter.send(SseEmitter.event().name("nova-mensagem").data(payload));
+                emitter.send(SseEmitter.event().name(nomeEvento).data(payload));
             } catch (IOException e) {
                 emitters.remove(emitter);
             }

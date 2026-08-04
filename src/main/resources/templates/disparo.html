@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Cartec — Disparo Automático</title>
+    <style th:replace="~{fragments/estilos :: base}"></style>
+    <style>
+        /* ───────── Sinais de passo a passo ───────── */
+        .trilha-passos { display: flex; align-items: flex-start; gap: 0; margin: 8px 0 20px 0; overflow-x: auto; }
+        .passo { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 140px; position: relative; }
+        .passo-linha { flex: 1; height: 3px; background: var(--grid); margin-top: 17px; min-width: 24px; }
+        .passo-linha.aceso { background: var(--good); }
+        .passo-sinal {
+            width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 0.95rem; border: 3px solid var(--grid); background: var(--surface-1); color: var(--muted);
+            transition: all .3s ease;
+        }
+        .passo-sinal.aceso { border-color: var(--good); background: color-mix(in srgb, var(--good) 18%, var(--surface-1)); color: var(--good); }
+        .passo-sinal.ativo { border-color: var(--warn); background: color-mix(in srgb, var(--warn) 20%, var(--surface-1)); color: var(--warn); animation: pulsar 1.4s infinite; }
+        @keyframes pulsar { 0%,100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--warn) 45%, transparent); } 50% { box-shadow: 0 0 0 8px transparent; } }
+        .passo-rotulo { font-size: 0.76rem; text-align: center; color: var(--text-secondary); max-width: 130px; line-height: 1.25; }
+        .passo-rotulo b { display: block; color: var(--text); font-size: 0.8rem; }
+
+        /* ───────── Grid de config + progresso ───────── */
+        .grid-disparo { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 900px) { .grid-disparo { grid-template-columns: 1fr; } }
+
+        .barra-progresso { width: 100%; height: 10px; border-radius: 6px; background: var(--grid); overflow: hidden; margin: 8px 0; }
+        .barra-progresso-fill { height: 100%; background: var(--good); transition: width .4s ease; width: 0%; }
+        .contadores { display: flex; gap: 18px; flex-wrap: wrap; font-size: 0.85rem; }
+        .contadores b { font-size: 1.1rem; display: block; }
+
+        /* ───────── Caixa de log ao vivo ───────── */
+        .caixa-log { height: 340px; overflow-y: auto; background: var(--page); border: 1px solid var(--grid); border-radius: 6px; padding: 10px; display: flex; flex-direction: column-reverse; gap: 6px; }
+        .log-linha { font-size: 0.82rem; padding: 6px 10px; border-radius: 6px; background: var(--surface-1); border: 1px solid var(--grid); display: flex; justify-content: space-between; gap: 8px; }
+        .log-linha.ok { border-left: 3px solid var(--good); }
+        .log-linha.erro { border-left: 3px solid var(--bad); }
+        .log-linha .hora { color: var(--muted); font-size: 0.72rem; white-space: nowrap; }
+        .log-vazio { color: var(--muted); font-size: 0.85rem; text-align: center; padding: 20px; }
+
+        textarea#mensagemTemplate { width: 100%; min-height: 110px; }
+        .dica { font-size: 0.76rem; color: var(--muted); margin-top: 4px; }
+    </style>
+</head>
+<body>
+<header th:replace="~{fragments/nav :: topbar}"></header>
+<div class="page-header">
+    <div>
+        <h1>Disparo Automático — PF sem histórico</h1>
+        <p>Envio automático e throttled só para quem nunca comprou (PF). PF com histórico e todo PJ seguem manuais (Reengajamento / CRM e Campanhas).</p>
+    </div>
+</div>
+
+<main>
+    <!-- SINAIS DE PASSO A PASSO -->
+    <section class="card">
+        <div class="trilha-passos" id="trilhaPassos">
+            <div class="passo">
+                <div class="passo-sinal" id="sinal1">1</div>
+                <div class="passo-rotulo"><b>Conectar</b>Escanear QR Code do WhatsApp</div>
+            </div>
+            <div class="passo-linha" id="linha1"></div>
+            <div class="passo">
+                <div class="passo-sinal" id="sinal2">2</div>
+                <div class="passo-rotulo"><b>Base</b>PF sem histórico, com telefone</div>
+            </div>
+            <div class="passo-linha" id="linha2"></div>
+            <div class="passo">
+                <div class="passo-sinal" id="sinal3">3</div>
+                <div class="passo-rotulo"><b>Mensagem</b>Escrever e validar o texto</div>
+            </div>
+            <div class="passo-linha" id="linha3"></div>
+            <div class="passo">
+                <div class="passo-sinal" id="sinal4">4</div>
+                <div class="passo-rotulo"><b>Envio</b>Disparo automático rodando</div>
+            </div>
+            <div class="passo-linha" id="linha4"></div>
+            <div class="passo">
+                <div class="passo-sinal" id="sinal5">5</div>
+                <div class="passo-rotulo"><b>Concluído</b>Base toda percorrida</div>
+            </div>
+        </div>
+
+        <!-- CONEXÃO -->
+        <div class="conexao-compacta" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <span id="badgeStatus" class="status-badge status-DESCONECTADO" style="font-weight:700; padding:6px 12px; border-radius:20px; font-size:0.8rem; display:inline-flex; align-items:center; gap:6px;">
+                <span style="width:8px; height:8px; border-radius:50%; background:currentColor;"></span>
+                <span id="textoStatus">Verificando conexão...</span>
+            </span>
+            <button type="button" class="secundario" onclick="toggleQr()" id="btnMostrarQr" style="display:none;">Ver QR Code</button>
+        </div>
+        <div id="containerQr" style="display:none; background:#fff; padding:16px; border-radius:8px; text-align:center; border:1px solid var(--grid); margin-top:12px;">
+            <img id="imgQrCode" src="" alt="QR Code WhatsApp" style="width:220px; height:220px; display:block; margin:0 auto 10px auto;">
+            <span style="font-size:0.8rem; color:#475569;">Escaneie com a câmera do seu WhatsApp (Aparelhos Conectados)</span>
+        </div>
+    </section>
+
+    <div class="grid-disparo">
+        <!-- CONFIGURAÇÃO DO DISPARO -->
+        <section class="card">
+            <h2 style="margin-top:0;">Configurar disparo</h2>
+            <p class="descricao" id="descAlvo">Carregando base elegível...</p>
+
+            <label for="mensagemTemplate">Mensagem (use <code>{nome}</code> para o primeiro nome)</label>
+            <textarea id="mensagemTemplate" placeholder="Olá {nome}! Aqui é da Cartec Bosch Service, em Natal/RN. Vimos seu cadastro por aqui e queríamos te conhecer melhor — topa agendar uma avaliação gratuita do seu carro? Se preferir não receber mais mensagens, responda SAIR."></textarea>
+            <div class="dica">Responder "SAIR" cancela automaticamente o envio para esse contato (opt-out).</div>
+
+            <label for="limiteDiario" style="margin-top:10px;">Limite de envios por dia</label>
+            <input type="number" id="limiteDiario" value="40" min="1" max="300" style="max-width:140px;">
+
+            <div style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
+                <button type="button" class="botao" id="btnCriar" onclick="criarDisparo()">Validar mensagem e criar disparo</button>
+                <button type="button" class="secundario" id="btnIniciar" onclick="iniciarDisparo()" style="display:none;">Iniciar envio automático</button>
+                <button type="button" class="secundario" id="btnPausar" onclick="pausarDisparo()" style="display:none;">Pausar</button>
+            </div>
+            <p id="mensagemErro" style="color:var(--bad); font-size:0.85rem; margin-top:8px;"></p>
+        </section>
+
+        <!-- PROGRESSO -->
+        <section class="card">
+            <h2 style="margin-top:0;">Progresso</h2>
+            <div class="contadores">
+                <div>Enviados<b id="ctdEnviado">0</b></div>
+                <div>Erros<b id="ctdErro">0</b></div>
+                <div>Opt-out<b id="ctdOptOut">0</b></div>
+                <div>Alvo total<b id="ctdAlvo">0</b></div>
+            </div>
+            <div class="barra-progresso"><div class="barra-progresso-fill" id="barraFill"></div></div>
+            <p class="descricao" id="descStatus">Nenhum disparo criado ainda.</p>
+        </section>
+    </div>
+
+    <!-- LOG AO VIVO -->
+    <section class="card">
+        <h2 style="margin-top:0;">Envios em tempo real</h2>
+        <div class="caixa-log" id="caixaLog">
+            <p class="log-vazio">Os envios aparecem aqui assim que o disparo começar.</p>
+        </div>
+    </section>
+</main>
+
+<script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
+<script th:replace="~{fragments/scripts :: escape-html}"></script>
+<script>
+    let disparoAtual = null;
+    let botConectado = false;
+
+    // ───────────── Sinais de passo a passo ─────────────
+    function atualizarSinais() {
+        const passo1 = botConectado;
+        const passo2 = true; // base sempre disponivel/consultada
+        const passo3 = !!(disparoAtual && disparoAtual.id);
+        const passo4 = !!(disparoAtual && disparoAtual.status === 'EM_ANDAMENTO');
+        const concluido4 = !!(disparoAtual && (disparoAtual.status === 'EM_ANDAMENTO' || disparoAtual.status === 'PAUSADO' || disparoAtual.status === 'CONCLUIDO'));
+        const passo5 = !!(disparoAtual && disparoAtual.status === 'CONCLUIDO');
+
+        marcarPasso('sinal1', 'linha1', passo1, false);
+        marcarPasso('sinal2', 'linha2', passo2, false);
+        marcarPasso('sinal3', 'linha3', passo3, false);
+        marcarPasso('sinal4', 'linha4', concluido4, passo4 && !passo5);
+        marcarPasso('sinal5', 'linha5', passo5, false);
+    }
+
+    function marcarPasso(idSinal, idLinha, aceso, ativoAgora) {
+        const sinal = document.getElementById(idSinal);
+        sinal.classList.remove('aceso', 'ativo');
+        if (ativoAgora) sinal.classList.add('ativo');
+        else if (aceso) sinal.classList.add('aceso');
+        const linha = document.getElementById(idLinha);
+        if (linha) linha.classList.toggle('aceso', aceso);
+    }
+
+    // ───────────── Conexão WhatsApp (QR) ─────────────
+    async function verificarStatus() {
+        try {
+            const res = await fetch('/api/whatsapp/status');
+            const data = await res.json();
+            const badge = document.getElementById('badgeStatus');
+            const texto = document.getElementById('textoStatus');
+            const btnQr = document.getElementById('btnMostrarQr');
+            const containerQr = document.getElementById('containerQr');
+            const imgQr = document.getElementById('imgQrCode');
+
+            botConectado = data.status === 'CONECTADO';
+            badge.style.color = botConectado ? 'var(--good)' : (data.status === 'AGUARDANDO_QR' ? 'var(--warn)' : 'var(--bad)');
+
+            if (botConectado) {
+                texto.textContent = 'CONECTADO (' + (data.phone || 'WhatsApp') + ')';
+                btnQr.style.display = 'none';
+                containerQr.style.display = 'none';
+            } else if (data.status === 'AGUARDANDO_QR') {
+                texto.textContent = 'AGUARDANDO LEITURA DO QR CODE';
+                if (data.qrCodeUrl) { imgQr.src = data.qrCodeUrl; btnQr.style.display = 'inline-block'; }
+            } else {
+                texto.textContent = 'DESCONECTADO — inicie o whatsapp-bot (node index.js)';
+                btnQr.style.display = 'none';
+                containerQr.style.display = 'none';
+            }
+            atualizarSinais();
+        } catch (err) {
+            console.error('Erro ao verificar status do bot:', err);
+        }
+    }
+
+    function toggleQr() {
+        const c = document.getElementById('containerQr');
+        c.style.display = c.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // ───────────── Base elegível ─────────────
+    async function carregarAlvo() {
+        const res = await fetch('/api/disparos/alvo-atual');
+        const data = await res.json();
+        document.getElementById('descAlvo').textContent =
+            data.totalElegivel + ' contatos PF sem histórico de compra, com telefone válido, elegíveis agora.';
+    }
+
+    // ───────────── Criar / iniciar / pausar disparo ─────────────
+    async function criarDisparo() {
+        const mensagem = document.getElementById('mensagemTemplate').value.trim();
+        const limiteDiario = parseInt(document.getElementById('limiteDiario').value, 10) || 40;
+        document.getElementById('mensagemErro').textContent = '';
+        if (!mensagem) {
+            document.getElementById('mensagemErro').textContent = 'Escreva a mensagem antes de validar.';
+            return;
+        }
+        try {
+            const res = await fetch('/api/disparos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome: 'Disparo PF sem histórico', mensagemTemplate: mensagem, limiteDiario })
+            });
+            if (!res.ok) throw new Error((await res.json()).message || 'Erro ao criar disparo');
+            disparoAtual = await res.json();
+            document.getElementById('btnCriar').style.display = 'none';
+            document.getElementById('btnIniciar').style.display = 'inline-block';
+            atualizarPainelProgresso();
+            atualizarSinais();
+        } catch (err) {
+            document.getElementById('mensagemErro').textContent = err.message;
+        }
+    }
+
+    async function iniciarDisparo() {
+        if (!disparoAtual) return;
+        try {
+            const res = await fetch('/api/disparos/' + disparoAtual.id + '/iniciar', { method: 'POST' });
+            if (!res.ok) {
+                const erro = await res.json().catch(() => ({}));
+                throw new Error(erro.message || 'Não foi possível iniciar — WhatsApp precisa estar CONECTADO.');
+            }
+            disparoAtual = await res.json();
+            document.getElementById('btnIniciar').style.display = 'none';
+            document.getElementById('btnPausar').style.display = 'inline-block';
+            atualizarPainelProgresso();
+            atualizarSinais();
+            carregarLogInicial();
+        } catch (err) {
+            document.getElementById('mensagemErro').textContent = err.message;
+        }
+    }
+
+    async function pausarDisparo() {
+        if (!disparoAtual) return;
+        const res = await fetch('/api/disparos/' + disparoAtual.id + '/pausar', { method: 'POST' });
+        disparoAtual = await res.json();
+        document.getElementById('btnPausar').style.display = 'none';
+        document.getElementById('btnIniciar').style.display = 'inline-block';
+        atualizarPainelProgresso();
+        atualizarSinais();
+    }
+
+    function atualizarPainelProgresso() {
+        if (!disparoAtual) return;
+        document.getElementById('ctdEnviado').textContent = disparoAtual.totalEnviado;
+        document.getElementById('ctdErro').textContent = disparoAtual.totalErro;
+        document.getElementById('ctdOptOut').textContent = disparoAtual.totalOptOut;
+        document.getElementById('ctdAlvo').textContent = disparoAtual.totalAlvo;
+        const pct = disparoAtual.totalAlvo > 0
+            ? Math.round(100 * (disparoAtual.totalEnviado + disparoAtual.totalErro + disparoAtual.totalOptOut) / disparoAtual.totalAlvo)
+            : 0;
+        document.getElementById('barraFill').style.width = pct + '%';
+
+        const rotulos = { RASCUNHO: 'Aguardando início.', EM_ANDAMENTO: 'Enviando automaticamente (respeitando limite diário e horário comercial).', PAUSADO: 'Pausado — retome quando quiser.', CONCLUIDO: 'Concluído — toda a base foi percorrida.' };
+        document.getElementById('descStatus').textContent = rotulos[disparoAtual.status] || '';
+    }
+
+    async function carregarLogInicial() {
+        if (!disparoAtual) return;
+        const res = await fetch('/api/disparos/' + disparoAtual.id + '/itens?limite=40');
+        const itens = await res.json();
+        const caixa = document.getElementById('caixaLog');
+        const enviados = itens.filter(i => i.status === 'ENVIADO' || i.status === 'ERRO');
+        if (enviados.length === 0) return;
+        caixa.innerHTML = '';
+        enviados.forEach(i => caixa.appendChild(criarLinhaLog(i.nome, i.status === 'ENVIADO' ? 'ok' : 'erro', i.dataEnvio)));
+    }
+
+    function criarLinhaLog(nome, tipo, dataHora) {
+        const div = document.createElement('div');
+        div.className = 'log-linha ' + tipo;
+        const hora = dataHora ? new Date(dataHora).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+        div.innerHTML = `<span>${tipo === 'ok' ? '✅ Enviado para' : '❌ Erro ao enviar para'} ${escapeHtml(nome || '')}</span><span class="hora">${hora}</span>`;
+        return div;
+    }
+
+    // ───────────── SSE — progresso em tempo real ─────────────
+    function conectarSse() {
+        const es = new EventSource('/api/whatsapp/stream');
+        es.addEventListener('disparo-progresso', (evt) => {
+            const data = JSON.parse(evt.data);
+            if (!disparoAtual || data.disparoId !== disparoAtual.id) return;
+
+            disparoAtual.status = data.status;
+            disparoAtual.totalEnviado = data.totalEnviado;
+            disparoAtual.totalErro = data.totalErro;
+            disparoAtual.totalOptOut = data.totalOptOut;
+            atualizarPainelProgresso();
+            atualizarSinais();
+
+            if (data.evento === 'enviado' || data.evento === 'erro') {
+                const caixa = document.getElementById('caixaLog');
+                const vazio = caixa.querySelector('.log-vazio');
+                if (vazio) vazio.remove();
+                caixa.prepend(criarLinhaLog(data.itemNome, data.evento === 'enviado' ? 'ok' : 'erro', new Date().toISOString()));
+            }
+            if (data.evento === 'concluido') {
+                document.getElementById('btnPausar').style.display = 'none';
+                document.getElementById('btnIniciar').style.display = 'none';
+            }
+        });
+        es.onerror = () => { /* EventSource reconecta sozinho */ };
+    }
+
+    verificarStatus();
+    setInterval(verificarStatus, 3000);
+    carregarAlvo();
+    conectarSse();
+</script>
+</body>
+</html>
