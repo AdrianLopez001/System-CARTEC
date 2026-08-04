@@ -199,9 +199,30 @@ async function iniciarWhatsApp() {
     for (const msg of messages) {
       if (!msg.message) continue;
 
-      const telefone = msg.key.remoteJid;
+      let telefone = msg.key.remoteJid;
       if (!telefone) continue;
       if (telefone.endsWith("@g.us") || telefone.endsWith("@broadcast")) continue;
+
+      // WhatsApp vem migrando alguns contatos pra "LID" (@lid), um id opaco
+      // de privacidade que nao e o numero de telefone - precisa resolver pro
+      // JID @s.whatsapp.net de verdade antes de mandar pro ERP, senao vira
+      // um "telefone" com um numero gigante sem sentido (ex: LID de 15
+      // digitos virando "telefone" invalido no cadastro do cliente).
+      if (telefone.endsWith("@lid")) {
+        let resolvido = msg.key.remoteJidAlt || null;
+        if (!resolvido) {
+          try {
+            resolvido = await sock.signalRepository.lidMapping.getPNForLID(telefone);
+          } catch (err) {
+            resolvido = null;
+          }
+        }
+        if (!resolvido) {
+          console.log(`\n⚠️  Não consegui resolver o LID ${telefone} pro número de telefone real - mensagem ignorada.`);
+          continue;
+        }
+        telefone = resolvido.includes("@") ? resolvido : `${resolvido}@s.whatsapp.net`;
+      }
 
       const texto =
         msg.message?.conversation ||
