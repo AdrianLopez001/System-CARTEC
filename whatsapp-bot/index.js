@@ -201,6 +201,7 @@ async function iniciarWhatsApp() {
 
       const telefone = msg.key.remoteJid;
       if (!telefone) continue;
+      if (telefone.endsWith("@g.us") || telefone.endsWith("@broadcast")) continue;
 
       const texto =
         msg.message?.conversation ||
