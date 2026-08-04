@@ -101,10 +101,22 @@
 
         .thread-vazia { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--muted); font-size: 0.9rem; text-align: center; padding: 20px; }
 
-        .thread-form { display: flex; gap: 10px; align-items: flex-end; padding: 12px 16px; border-top: 1px solid var(--grid); background: var(--surface-1); flex-shrink: 0; }
-        .thread-form textarea { flex: 1; min-height: 42px; max-height: 120px; margin: 0; resize: none; border-radius: 20px; padding: 10px 16px; }
+        .thread-form { display: flex; gap: 6px; align-items: flex-end; padding: 10px 14px; border-top: 1px solid var(--grid); background: var(--surface-1); flex-shrink: 0; }
+        .composer-acoes { display: flex; gap: 2px; flex-shrink: 0; padding-bottom: 2px; }
+        .botao-icone { background: transparent; border: none; color: var(--text-secondary); font-size: 1.25rem; line-height: 1; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .12s; }
+        .botao-icone:hover { background: var(--page); }
+        .composer-campo { position: relative; flex: 1; min-width: 0; display: flex; }
+        .composer-campo textarea { flex: 1; min-height: 42px; max-height: 120px; margin: 0; resize: none; border-radius: 20px; padding: 10px 16px; }
         .thread-form button.botao-enviar { align-self: flex-end; flex-shrink: 0; border-radius: 50%; width: 42px; height: 42px; padding: 0; display: flex; align-items: center; justify-content: center; }
         .thread-form button.botao-enviar svg { width: 18px; height: 18px; }
+
+        .popup-composer { position: absolute; bottom: calc(100% + 8px); left: 0; background: var(--surface-1); border: 1px solid var(--grid); border-radius: 10px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14); padding: 10px; z-index: 30; }
+        .popup-emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; width: 260px; }
+        .emoji-item { background: none; border: none; font-size: 1.15rem; padding: 4px; border-radius: 6px; cursor: pointer; line-height: 1; }
+        .emoji-item:hover { background: var(--page); }
+        .popup-modelos-lista { display: flex; flex-direction: column; gap: 2px; width: 280px; max-height: 220px; overflow-y: auto; }
+        .modelo-item { background: none; border: none; text-align: left; font-size: 0.82rem; padding: 8px 10px; border-radius: 6px; cursor: pointer; color: var(--text-primary); line-height: 1.35; }
+        .modelo-item:hover { background: var(--page); }
     </style>
 </head>
 <body>
@@ -307,6 +319,7 @@
             }
         });
         campoTexto.focus();
+        configurarComposerExtras();
 
         await carregarMensagens(telefone);
 
@@ -337,12 +350,91 @@
             </div>
             <div class="thread-mensagens" id="threadMensagens"></div>
             <form id="formEnvio" class="thread-form">
-                <textarea id="textoEnvio" placeholder="Digite uma mensagem..." rows="1" required></textarea>
+                <div class="composer-acoes">
+                    <button type="button" class="botao-icone" id="btnEmoji" title="Emoji">🙂</button>
+                    <button type="button" class="botao-icone" id="btnModelos" title="Respostas rápidas">⚡</button>
+                </div>
+                <div class="composer-campo">
+                    <textarea id="textoEnvio" placeholder="Digite uma mensagem..." rows="1" required></textarea>
+                    <div class="popup-composer" id="popupEmoji" hidden>
+                        <div class="popup-emoji-grid"></div>
+                    </div>
+                    <div class="popup-composer" id="popupModelos" hidden>
+                        <div class="popup-modelos-lista"></div>
+                    </div>
+                </div>
                 <button type="submit" class="botao-enviar" title="Enviar">
                     <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 20L21 12L3 4V10L16 12L3 14V20Z" fill="currentColor"/></svg>
                 </button>
             </form>
         `;
+    }
+
+    const EMOJIS = ['😀','😃','😄','😁','😊','🙂','😉','😍','😘','🤔','😅','😢','😭','😡','😴','🤝','👍','👎','🙏','👏','💪','🔥','✅','❌','⏰','📅','🚗','🔧','💰','📦','🎉','❤️'];
+    const MODELOS_RESPOSTA = [
+        'Olá! Como posso te ajudar hoje?',
+        'Seu veículo está pronto para retirada.',
+        'Estamos aguardando a chegada da peça, assim que chegar te aviso.',
+        'Pode me confirmar a placa do veículo?',
+        'Vou verificar e já te retorno.',
+        'Obrigado pelo contato! Qualquer coisa estou à disposição.'
+    ];
+
+    function configurarComposerExtras() {
+        const btnEmoji = document.getElementById('btnEmoji');
+        const btnModelos = document.getElementById('btnModelos');
+        const popupEmoji = document.getElementById('popupEmoji');
+        const popupModelos = document.getElementById('popupModelos');
+        const campoTexto = document.getElementById('textoEnvio');
+
+        const gridEmoji = popupEmoji.querySelector('.popup-emoji-grid');
+        gridEmoji.innerHTML = EMOJIS.map(e => `<button type="button" class="emoji-item">${e}</button>`).join('');
+        gridEmoji.querySelectorAll('.emoji-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                inserirNoCampo(campoTexto, btn.textContent);
+                fecharPopups();
+            });
+        });
+
+        const listaModelos = popupModelos.querySelector('.popup-modelos-lista');
+        listaModelos.innerHTML = MODELOS_RESPOSTA.map((m, i) => `<button type="button" class="modelo-item" data-i="${i}">${escapeHtml(m)}</button>`).join('');
+        listaModelos.querySelectorAll('.modelo-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                campoTexto.value = MODELOS_RESPOSTA[Number(btn.dataset.i)];
+                campoTexto.dispatchEvent(new Event('input'));
+                campoTexto.focus();
+                fecharPopups();
+            });
+        });
+
+        function fecharPopups() {
+            popupEmoji.hidden = true;
+            popupModelos.hidden = true;
+        }
+        btnEmoji.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const abrindo = popupEmoji.hidden;
+            fecharPopups();
+            popupEmoji.hidden = !abrindo;
+        });
+        btnModelos.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const abrindo = popupModelos.hidden;
+            fecharPopups();
+            popupModelos.hidden = !abrindo;
+        });
+        document.addEventListener('click', fecharPopups);
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharPopups(); });
+    }
+
+    function inserirNoCampo(campo, texto) {
+        const inicio = campo.selectionStart ?? campo.value.length;
+        const fim = campo.selectionEnd ?? campo.value.length;
+        campo.value = campo.value.slice(0, inicio) + texto + campo.value.slice(fim);
+        const novoCursor = inicio + texto.length;
+        campo.setSelectionRange(novoCursor, novoCursor);
+        campo.dispatchEvent(new Event('input'));
+        campo.focus();
     }
 
     function selectHtml(nome, opcoes, valorAtual) {
