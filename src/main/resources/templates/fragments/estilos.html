@@ -69,30 +69,35 @@
         background: var(--page);
         color: var(--text-primary);
         -webkit-font-smoothing: antialiased;
+        padding-left: 224px;
     }
+    @media (max-width: 780px) { body { padding-left: 0; } }
 
-    /* Barra superior fixa, estilo corporativo */
-    .topbar {
-        background: var(--topbar);
-        color: var(--topbar-text);
+    /* Menu lateral fixo, estilo BotConversa: icone + rotulo empilhados,
+       item ativo com fundo tintado na cor da marca. position:fixed em vez
+       de fazer body virar flex-row - assim nenhuma das outras paginas
+       precisa de wrapper novo, so o padding-left acima empurra o conteudo. */
+    .sidebar {
+        position: fixed;
+        top: 0; left: 0; bottom: 0;
+        width: 224px;
+        background: var(--surface-1);
+        border-right: 1px solid var(--grid);
         display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 10px;
-        padding: 0 clamp(16px, 4vw, 40px);
-        min-height: 56px;
-        position: sticky;
-        top: 0;
-        z-index: 10;
+        flex-direction: column;
+        z-index: 20;
+        overflow-y: auto;
     }
-    .marca {
+    @media (max-width: 780px) {
+        .sidebar { position: static; width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--grid); }
+    }
+    .sidebar-marca {
         display: flex;
         align-items: center;
         gap: 10px;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-        white-space: nowrap;
+        padding: 18px 16px;
+        border-bottom: 1px solid var(--grid);
+        flex-shrink: 0;
     }
     .marca-caixa {
         background: var(--brand);
@@ -103,28 +108,47 @@
         border-radius: 3px;
         line-height: 1;
     }
-    .marca-texto { font-size: 0.95rem; color: var(--topbar-text); }
-    .marca-texto b { font-weight: 400; opacity: 0.75; }
+    .marca-texto { font-size: 0.95rem; color: var(--text-primary); font-weight: 600; letter-spacing: 0.02em; }
+    .marca-texto b { font-weight: 400; opacity: 0.65; }
 
-    .topbar nav {
+    .sidebar-nav {
+        flex: 1;
         display: flex;
-        flex-wrap: wrap;
+        flex-direction: column;
         gap: 2px;
-        font-size: 0.83rem;
-        padding: 8px 0;
+        padding: 10px 10px;
+        overflow-y: auto;
     }
-    .topbar nav a {
-        color: var(--topbar-text);
-        opacity: 0.75;
+    .sidebar-nav a {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 8px;
+        color: var(--text-secondary);
         text-decoration: none;
-        padding: 8px 12px;
-        border-bottom: 2px solid transparent;
-        transition: opacity .15s, border-color .15s;
+        font-size: 0.85rem;
+        font-weight: 500;
+        white-space: nowrap;
+        transition: background .12s, color .12s;
     }
-    .topbar nav a:hover { opacity: 1; }
-    .topbar nav a.ativo { opacity: 1; border-color: var(--brand); font-weight: 600; }
+    .sidebar-nav a .icone { font-size: 1.05rem; width: 20px; text-align: center; flex-shrink: 0; }
+    .sidebar-nav a:hover { background: var(--page); color: var(--text-primary); }
+    .sidebar-nav a.ativo { background: color-mix(in srgb, var(--brand) 12%, transparent); color: var(--brand); font-weight: 700; }
+    .sidebar-sair {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 20px;
+        border-top: 1px solid var(--grid);
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.84rem;
+        flex-shrink: 0;
+    }
+    .sidebar-sair:hover { color: var(--brand); }
 
-    /* Cabecalho de pagina (titulo + subtitulo), abaixo da topbar */
+    /* Cabecalho de pagina (titulo + subtitulo) */
     .page-header {
         padding: 22px clamp(16px, 4vw, 40px) 6px;
         display: flex;
