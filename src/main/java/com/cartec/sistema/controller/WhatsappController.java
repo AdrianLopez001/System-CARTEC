@@ -108,17 +108,29 @@ public class WhatsappController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Telefone e texto sao obrigatorios");
         }
 
+        Map<String, Object> resposta;
         try {
-            // Nao persiste aqui: o bot ecoa a propria mensagem enviada via
-            // messages.upsert (fromMe=true) e manda pra /mensagens/chat,
-            // que e quem registra a mensagem de SAIDA e dispara o SSE -
-            // persistir aqui tambem duplicaria a mensagem na thread.
             Map<String, String> req = Map.of("telefone", telefone, "texto", texto);
-            Map<String, Object> resposta = restTemplate.postForObject(botUrl + "/send", req, Map.class);
-            return resposta != null ? resposta : Map.of("ok", true);
+            resposta = restTemplate.postForObject(botUrl + "/send", req, Map.class);
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao enviar mensagem via bot: " + e.getMessage());
         }
+
+        // Registra e dispara o SSE aqui mesmo, na hora, em vez de depender do
+        // bot ecoar a propria mensagem via messages.upsert (round-trip
+        // assincrono que nem sempre chega). Usa o mesmo idExternoWhatsapp
+        // que o bot retornou - se o eco chegar depois em /mensagens/chat,
+        // MensagemChatService.registrar() ja deduplica por esse id.
+        MensagemChatRequest reqRegistro = new MensagemChatRequest();
+        reqRegistro.setTelefone(telefone);
+        reqRegistro.setTexto(texto);
+        reqRegistro.setDirecao("SAIDA");
+        if (resposta != null && resposta.get("id") != null) {
+            reqRegistro.setIdExternoWhatsapp(String.valueOf(resposta.get("id")));
+        }
+        mensagemChatService.registrar(reqRegistro);
+
+        return resposta != null ? resposta : Map.of("ok", true);
     }
 
     @PostMapping("/desconectar")

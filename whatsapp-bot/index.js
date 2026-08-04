@@ -122,9 +122,9 @@ async function iniciarWhatsApp() {
           if (!jid.endsWith("@s.whatsapp.net")) {
             jid = jid + "@s.whatsapp.net";
           }
-          await sock.sendMessage(jid, { text: data.texto });
+          const enviada = await sock.sendMessage(jid, { text: data.texto });
           res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ ok: true, mensagem: "Mensagem enviada com sucesso!" }));
+          res.end(JSON.stringify({ ok: true, mensagem: "Mensagem enviada com sucesso!", id: enviada?.key?.id || null }));
         } catch (err) {
           res.writeHead(500, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ ok: false, erro: err.message }));
