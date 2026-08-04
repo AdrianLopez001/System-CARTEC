@@ -5,6 +5,15 @@
     <title>Cartec — Chat WhatsApp</title>
     <style th:replace="~{fragments/estilos :: base}"></style>
     <style>
+        /* Reduz o espaco ocupado acima do quadro do chat (cabecalho da
+           pagina + card de conexao), pra sobrar o maximo de altura pra
+           lista de conversas/mensagens - essa pagina e o chat, o resto e
+           so contexto. */
+        .page-header { padding-top: 14px; padding-bottom: 2px; }
+        .page-header p { display: none; }
+        main { gap: 10px; }
+        .card-conexao { padding: 10px 16px; }
+
         /* Painel de conexao compacto */
         .conexao-compacta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
         .status-badge { font-weight: 700; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 6px; }
@@ -100,7 +109,7 @@
 </div>
 <main>
     <!-- PAINEL DE CONEXÃO COMPACTO -->
-    <section class="card">
+    <section class="card card-conexao">
         <div class="conexao-compacta">
             <span id="badgeStatus" class="status-badge status-DESCONECTADO">
                 <span id="pontoStatus" style="width:8px; height:8px; border-radius:50%; background:currentColor;"></span>
@@ -441,7 +450,7 @@
         if (!shell) return;
         const topo = shell.getBoundingClientRect().top;
         const alturaDisponivel = window.innerHeight - topo - 16;
-        shell.style.height = Math.max(alturaDisponivel, 420) + 'px';
+        shell.style.height = Math.max(alturaDisponivel, 280) + 'px';
     }
     window.addEventListener('resize', ajustarAlturaShell);
 
