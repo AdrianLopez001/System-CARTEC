@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cartec — Faturamento Diário</title>
+    <style th:replace="~{fragments/estilos :: base}"></style>
+    <style>
+        .upload-area { border: 2px dashed var(--grid); border-radius: 10px; padding: 24px; text-align: center; background: var(--page); transition: border-color .15s; }
+        .upload-area:hover { border-color: var(--brand); }
+        .resultado-resumo { display: none; margin-top: 8px; }
+        .resultado-resumo.visivel { display: block; }
+        .resultado-alerta { padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 16px; }
+        .resultado-alerta.ok { background: color-mix(in srgb, var(--good) 12%, transparent); color: var(--good); }
+        .resultado-alerta.erro { background: color-mix(in srgb, var(--bad) 12%, transparent); color: var(--bad); }
+    </style>
+</head>
+<body>
+<header th:replace="~{fragments/nav :: topbar}"></header>
+<div class="page-header">
+    <div>
+        <h1>Faturamento Diário</h1>
+        <p>Envie a Conferência de OS do dia (PDF ou XLSX) — o sistema importa e já mostra o efeito no mês.</p>
+    </div>
+</div>
+<main>
+    <section class="card">
+        <h2>Enviar arquivo do dia</h2>
+        <p class="descricao">Aceita <code>ConferenciaOS.pdf</code> ou <code>ConferenciaOS.xlsx</code>, o mesmo formato exportado do sistema de gestão da oficina.</p>
+        <form id="formFaturamento">
+            <div class="upload-area">
+                <label for="fileFaturamento" style="cursor:pointer; display:block;">
+                    <span style="font-size:2rem; display:block; margin-bottom:8px;">📥</span>
+                    <strong>Clique aqui para escolher o arquivo (.pdf ou .xlsx)</strong>
+                </label>
+                <input type="file" id="fileFaturamento" accept=".pdf,.xlsx,.xls" required style="margin-top:10px;">
+            </div>
+            <button type="submit" class="botao" style="width:100%; margin-top:16px;" id="btnEnviar">Processar Faturamento do Dia 🚀</button>
+        </form>
+        <div id="alertaResultado"></div>
+    </section>
+
+    <section class="resultado-resumo card" id="painelResumo">
+        <h2>Efeito no mês</h2>
+        <p class="descricao" id="descricaoResumo"></p>
+        <div class="tiles">
+            <div class="tile">
+                <div class="label">Faturado no mês</div>
+                <div class="value" id="tileValorAtual">R$ 0,00</div>
+            </div>
+            <div class="tile">
+                <div class="label">Ticket médio</div>
+                <div class="value" id="tileTicketMedio">—</div>
+            </div>
+            <div class="tile">
+                <div class="label">Projeção de fechamento</div>
+                <div class="value" id="tileProjecao">R$ 0,00</div>
+            </div>
+            <div class="tile">
+                <div class="label">% da meta (atual → projetado)</div>
+                <div class="value" id="tilePercentualMeta">—</div>
+            </div>
+        </div>
+        <p class="descricao" style="margin-top:16px;">
+            Quer ver o histórico completo, gráfico e cadastrar a meta do mês? <a th:href="@{/}">Abra o Dashboard</a>.
+        </p>
+    </section>
+</main>
+
+<script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
+<script>
+    function formatarMoeda(valor) {
+        if (valor === null || valor === undefined) return 'R$ 0,00';
+        return 'R$ ' + Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    document.getElementById('formFaturamento').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fileInput = document.getElementById('fileFaturamento');
+        const alerta = document.getElementById('alertaResultado');
+        const btn = document.getElementById('btnEnviar');
+        if (!fileInput.files.length) return;
+
+        const formData = new FormData();
+        formData.append('arquivo', fileInput.files[0]);
+
+        btn.disabled = true;
+        alerta.innerHTML = '<div class="resultado-alerta ok">Processando arquivo...</div>';
+        document.getElementById('painelResumo').classList.remove('visivel');
+
+        try {
+            const res = await fetch('/api/faturamento/enviar', { method: 'POST', body: formData });
+            const dados = await res.json();
+
+            if (res.ok) {
+                const imp = dados.importacao || {};
+                let msg = `Faturamento importado: ${imp.totalGravado || 0} OS gravadas (de ${imp.totalLinhasLidas || 0} lidas).`;
+                if (imp.divergencias && imp.divergencias.length) {
+                    msg += ` ${imp.divergencias.length} alerta(s) em linhas específicas.`;
+                }
+                alerta.innerHTML = '<div class="resultado-alerta ok">' + msg + '</div>';
+
+                document.getElementById('descricaoResumo').textContent =
+                    `Dia ${dados.diasDecorridos} de ${dados.diasNoMes} do mês, ${dados.totalOs} OS faturadas no total.`;
+                document.getElementById('tileValorAtual').textContent = formatarMoeda(dados.valorAtual);
+                document.getElementById('tileTicketMedio').textContent = dados.ticketMedio ? formatarMoeda(dados.ticketMedio) : 'sem dado ainda';
+                document.getElementById('tileProjecao').textContent = formatarMoeda(dados.projecaoFechamento);
+                if (dados.percentualMetaAtual != null) {
+                    document.getElementById('tilePercentualMeta').textContent =
+                        Number(dados.percentualMetaAtual).toFixed(1) + '% → ' + Number(dados.percentualMetaProjetado).toFixed(1) + '%';
+                } else {
+                    document.getElementById('tilePercentualMeta').textContent = 'cadastre a meta no Dashboard';
+                }
+                document.getElementById('painelResumo').classList.add('visivel');
+                fileInput.value = '';
+            } else {
+                alerta.innerHTML = '<div class="resultado-alerta erro">Erro ao importar: ' + (dados.message || 'verifique o formato do arquivo.') + '</div>';
+            }
+        } catch (err) {
+            alerta.innerHTML = '<div class="resultado-alerta erro">Erro de rede: ' + err.message + '</div>';
+        } finally {
+            btn.disabled = false;
+        }
+    });
+</script>
+</body>
+</html>
