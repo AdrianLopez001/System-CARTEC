@@ -6,11 +6,13 @@ import com.cartec.sistema.model.ItemServico;
 import com.cartec.sistema.model.OrdemServico;
 import com.cartec.sistema.model.TipoEvento;
 import com.cartec.sistema.model.VendaMensal;
+import com.cartec.sistema.model.VendaProduto;
 import com.cartec.sistema.repository.ClienteRepository;
 import com.cartec.sistema.repository.EventoRepository;
 import com.cartec.sistema.repository.ItemServicoRepository;
 import com.cartec.sistema.repository.OrdemServicoRepository;
 import com.cartec.sistema.repository.VendaMensalRepository;
+import com.cartec.sistema.repository.VendaProdutoRepository;
 import com.cartec.sistema.util.PhoneUtils;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -44,17 +46,20 @@ public class IngestaoService {
     private final VendaMensalRepository vendaMensalRepository;
     private final EventoRepository eventoRepository;
     private final ItemServicoRepository itemServicoRepository;
+    private final VendaProdutoRepository vendaProdutoRepository;
 
     public IngestaoService(OrdemServicoRepository ordemServicoRepository,
                             ClienteRepository clienteRepository,
                             VendaMensalRepository vendaMensalRepository,
                             EventoRepository eventoRepository,
-                            ItemServicoRepository itemServicoRepository) {
+                            ItemServicoRepository itemServicoRepository,
+                            VendaProdutoRepository vendaProdutoRepository) {
         this.ordemServicoRepository = ordemServicoRepository;
         this.clienteRepository = clienteRepository;
         this.vendaMensalRepository = vendaMensalRepository;
         this.eventoRepository = eventoRepository;
         this.itemServicoRepository = itemServicoRepository;
+        this.vendaProdutoRepository = vendaProdutoRepository;
     }
 
     @Transactional
@@ -143,6 +148,43 @@ public class IngestaoService {
             entidade.setExecutor(item.executor);
             itemServicoRepository.save(entidade);
             totalGravado++;
+        }
+
+        int totalLinhas = resultado.itens().size() + resultado.divergencias().size();
+        return new ResultadoImportacao(totalLinhas, totalGravado, divergencias);
+    }
+
+    @Transactional
+    public ResultadoImportacao importarVendasPorProdutoXls(MultipartFile arquivo) throws IOException {
+        VendaProdutoXlsParser.Resultado resultado;
+        try (InputStream in = arquivo.getInputStream();
+             Workbook workbook = WorkbookFactory.create(in)) {
+            resultado = VendaProdutoXlsParser.parse(workbook.getSheetAt(0));
+        }
+
+        List<String> divergencias = new ArrayList<>(resultado.divergencias());
+        int totalGravado = 0;
+
+        if (resultado.periodoInicio() != null && resultado.periodoFim() != null) {
+            // Reimportar o mesmo periodo substitui em vez de duplicar.
+            vendaProdutoRepository.deleteByPeriodoInicioAndPeriodoFim(resultado.periodoInicio(), resultado.periodoFim());
+
+            for (VendaProdutoXlsParser.ItemImportado item : resultado.itens()) {
+                VendaProduto entidade = new VendaProduto();
+                entidade.setCategoria(item.categoria);
+                entidade.setCodigo(item.codigo);
+                entidade.setDescricao(item.descricao);
+                entidade.setMarca(item.marca);
+                entidade.setNcm(item.ncm);
+                entidade.setQuantidade(item.quantidade);
+                entidade.setFaturamento(item.faturamento);
+                entidade.setValorMedio(item.valorMedio);
+                entidade.setPercentual(item.percentual);
+                entidade.setPeriodoInicio(resultado.periodoInicio());
+                entidade.setPeriodoFim(resultado.periodoFim());
+                vendaProdutoRepository.save(entidade);
+                totalGravado++;
+            }
         }
 
         int totalLinhas = resultado.itens().size() + resultado.divergencias().size();

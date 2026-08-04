@@ -113,6 +113,27 @@
             <div id="resVendas" class="resultado-box"></div>
         </section>
 
+        <!-- CARD 3B: VENDAS POR PRODUTO/SERVIÇO -->
+        <section class="card upload-card">
+            <div>
+                <h2 style="margin-top:0;">🧾 Importar Vendas por Produto/Serviço (XLS)</h2>
+                <p class="descricao">
+                    Suba o <code>VendaPorProduto.xls</code> — faturamento por peça/serviço no período, agrupado por categoria. Alimenta o ranking de melhores/piores categorias.
+                </p>
+                <form id="formVendaProduto" enctype="multipart/form-data">
+                    <div class="upload-area">
+                        <label for="fileVendaProduto" style="cursor:pointer; display:block;">
+                            <span style="font-size:2rem; display:block; margin-bottom:8px;">🧾</span>
+                            <strong>Clique aqui para escolher o arquivo (.xls)</strong>
+                        </label>
+                        <input type="file" id="fileVendaProduto" accept=".xls,.xlsx" required style="margin-top:10px;">
+                    </div>
+                    <button type="submit" class="botao" style="width:100%; margin-top:16px;">Importar Vendas por Produto 📊</button>
+                </form>
+            </div>
+            <div id="resVendaProduto" class="resultado-box"></div>
+        </section>
+
         <!-- CARD 4: AGENDA DE SERVIÇOS -->
         <section class="card upload-card">
             <div>
@@ -194,6 +215,11 @@
     document.getElementById('formVendas').addEventListener('submit', (e) => {
         e.preventDefault();
         enviarArquivo('/api/ingestao/vendas-por-mes-pdf', 'fileVendas', 'resVendas');
+    });
+
+    document.getElementById('formVendaProduto').addEventListener('submit', (e) => {
+        e.preventDefault();
+        enviarArquivo('/api/ingestao/vendas-por-produto-xls', 'fileVendaProduto', 'resVendaProduto');
     });
 
     document.getElementById('formAgenda').addEventListener('submit', (e) => {
