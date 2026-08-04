@@ -38,6 +38,15 @@ public class ConversaWhatsappService {
         conversaRepository.save(conversa);
     }
 
+    public ConversaWhatsapp renomear(String telefone, String novoNome) {
+        if (novoNome == null || novoNome.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nome nao pode ser vazio");
+        }
+        ConversaWhatsapp conversa = buscarPorTelefone(telefone);
+        conversa.setNomeContatoWhatsapp(novoNome.trim());
+        return conversaRepository.save(conversa);
+    }
+
     private ConversaWhatsapp buscarPorTelefone(String telefoneBruto) {
         String telefone = PhoneUtils.padronizar(telefoneBruto);
         return conversaRepository.findByTelefone(telefone)

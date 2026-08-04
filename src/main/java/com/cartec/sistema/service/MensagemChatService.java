@@ -75,7 +75,10 @@ public class MensagemChatService {
                     return nova;
                 });
 
-        if (pushName != null && !pushName.isBlank()) {
+        // So usa o pushName do WhatsApp se ainda nao tem nome nenhum - assim
+        // um nome definido manualmente pelo operador (ConversaWhatsappService
+        // .renomear) nunca e sobrescrito na proxima mensagem que chegar.
+        if (pushName != null && !pushName.isBlank() && (conversa.getNomeContatoWhatsapp() == null || conversa.getNomeContatoWhatsapp().isBlank())) {
             conversa.setNomeContatoWhatsapp(pushName);
         }
         conversa.setDataUltimaMensagem(LocalDateTime.now());

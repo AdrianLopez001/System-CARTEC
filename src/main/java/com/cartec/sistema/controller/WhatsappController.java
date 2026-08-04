@@ -80,6 +80,11 @@ public class WhatsappController {
         conversaWhatsappService.marcarLida(telefone);
     }
 
+    @PatchMapping("/conversas/{telefone}/nome")
+    public ConversaWhatsapp renomear(@PathVariable String telefone, @RequestBody Map<String, String> corpo) {
+        return conversaWhatsappService.renomear(telefone, corpo.get("nome"));
+    }
+
     @GetMapping("/stream")
     public SseEmitter stream() {
         return sseService.subscribe();

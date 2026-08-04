@@ -82,8 +82,13 @@
         .thread-cabecalho .info-contato { display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0; }
         .thread-cabecalho .avatar { width: 36px; height: 36px; font-size: 0.74rem; }
         .thread-cabecalho .textos { min-width: 0; }
+        .nome-linha { display: flex; align-items: center; gap: 4px; min-width: 0; }
         .thread-cabecalho .nome { font-weight: 700; font-size: 0.94rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .thread-cabecalho .telefone { font-size: 0.75rem; color: var(--muted); }
+        .nome-linha .botao-icone { width: 24px; height: 24px; font-size: 0.78rem; flex-shrink: 0; opacity: 0.55; }
+        .nome-linha .botao-icone:hover { opacity: 1; }
+        .nome-vinculado { font-size: 0.8rem; opacity: 0.6; flex-shrink: 0; cursor: help; }
+        .input-nome-contato { margin: 0; padding: 3px 8px; font-size: 0.88rem; font-weight: 700; border-radius: 6px; width: 180px; }
         .classificacao-controles { display: flex; flex-wrap: wrap; gap: 6px; flex: 2 1 340px; }
         .classificacao-controles select, .classificacao-controles input { margin: 0; padding: 5px 10px; font-size: 0.74rem; border-radius: 14px; width: auto; min-width: 108px; }
 
@@ -327,6 +332,7 @@
         });
         campoTexto.focus();
         configurarComposerExtras();
+        configurarEdicaoNome(telefone);
 
         await carregarMensagens(telefone);
 
@@ -344,7 +350,12 @@
                 <div class="info-contato">
                     <span class="avatar">${escapeHtml(iniciais(nome))}</span>
                     <div class="textos">
-                        <div class="nome">${escapeHtml(nome)}</div>
+                        <div class="nome-linha">
+                            <span class="nome" id="nomeContatoTexto">${escapeHtml(nome)}</span>
+                            ${(conversa && conversa.cliente)
+                                ? '<span class="nome-vinculado" title="Nome vem do cadastro de cliente - edite em Clientes & Empresas">🔗</span>'
+                                : '<button type="button" class="botao-icone botao-editar-nome" id="btnEditarNome" title="Editar nome do contato">✏️</button>'}
+                        </div>
                         <div class="telefone">${escapeHtml(telefoneAtivo)}</div>
                     </div>
                 </div>
@@ -442,6 +453,54 @@
         campo.setSelectionRange(novoCursor, novoCursor);
         campo.dispatchEvent(new Event('input'));
         campo.focus();
+    }
+
+    function configurarEdicaoNome(telefone) {
+        const btn = document.getElementById('btnEditarNome');
+        if (!btn) return; // conversa vinculada a cliente cadastrado - nao edita aqui
+        btn.addEventListener('click', () => iniciarEdicaoNome(telefone));
+    }
+
+    function iniciarEdicaoNome(telefone) {
+        const linha = document.querySelector('.nome-linha');
+        const conversa = conversas.find(c => c.telefone === telefone);
+        const nomeAtual = conversa ? nomeConversa(conversa) : telefone;
+
+        linha.innerHTML = `
+            <input type="text" id="inputNomeContato" class="input-nome-contato" value="${escapeAttr(nomeAtual)}" maxlength="120">
+            <button type="button" class="botao-icone" id="btnSalvarNome" title="Salvar">✅</button>
+            <button type="button" class="botao-icone" id="btnCancelarNome" title="Cancelar">✖️</button>
+        `;
+        const input = document.getElementById('inputNomeContato');
+        input.focus();
+        input.select();
+
+        const salvar = () => salvarNomeContato(telefone, input.value);
+        document.getElementById('btnSalvarNome').addEventListener('click', salvar);
+        document.getElementById('btnCancelarNome').addEventListener('click', () => selecionarConversa(telefone));
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); salvar(); }
+            if (e.key === 'Escape') { e.preventDefault(); selecionarConversa(telefone); }
+        });
+    }
+
+    async function salvarNomeContato(telefone, novoNome) {
+        const nome = novoNome.trim();
+        if (!nome) return;
+        const res = await fetch('/api/whatsapp/conversas/' + telefone + '/nome', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome })
+        });
+        if (res.ok) {
+            const atualizada = await res.json();
+            const idx = conversas.findIndex(c => c.telefone === telefone);
+            if (idx >= 0) conversas[idx] = atualizada;
+            renderizarListaContatos();
+            selecionarConversa(telefone);
+        } else {
+            alert('Erro ao salvar o nome (HTTP ' + res.status + ')');
+        }
     }
 
     function selectHtml(nome, opcoes, valorAtual) {
