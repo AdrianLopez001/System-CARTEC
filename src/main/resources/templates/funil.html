@@ -54,8 +54,8 @@
                     <button th:if="${f.status.name() == 'RESPONDIDO'}"
                             th:attr="data-id=${f.id}" onclick="gerarLink(this)">Gerar link de formulário</button>
 
-                    <div th:if="${f.status.name() == 'APROVADO'}" class="descricao">
-                        <a th:if="${f.evento != null}" th:href="@{/calendario}">Ver na agenda (evento #<span th:text="${f.evento.id}"></span>)</a>
+                    <div th:if="${f.status.name() == 'APROVADO' and f.evento != null}" class="descricao">
+                        Agendado (evento #<span th:text="${f.evento.id}"></span>)
                     </div>
 
                     <div th:if="${f.status.name() == 'REJEITADO'}" class="descricao" th:text="${f.motivoRejeicao}"></div>
