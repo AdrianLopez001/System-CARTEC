@@ -94,7 +94,14 @@
            e em mensagens curtas ("oi", "b") o horario ficava por cima do
            texto. overflow:hidden no .bolha contem o float (senao ele
            escapa da caixa e o fundo do balao nao acompanha). */
-        .bolha { max-width: 68%; padding: 7px 12px; border-radius: 12px; font-size: 0.87rem; line-height: 1.42; word-wrap: break-word; overflow: hidden; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05); }
+        /* flex-shrink:0 e essencial: sem isso, o navegador comprime a
+           altura de cada bolha (item flex dentro de .thread-mensagens)
+           pra caber tudo sem rolar, em vez de deixar o container rolar -
+           e como a bolha tem overflow:hidden (pro float do horario), o
+           texto comprimido ficava cortado/invisivel. Com flex-shrink:0
+           cada bolha mantem a altura natural e quem rola e a lista, igual
+           no WhatsApp de verdade. */
+        .bolha { max-width: 68%; padding: 7px 12px; border-radius: 12px; font-size: 0.87rem; line-height: 1.42; word-wrap: break-word; overflow: hidden; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05); flex-shrink: 0; }
         .bolha .hora { float: right; margin: 4px 0 -2px 10px; font-size: 0.64rem; opacity: 0.65; white-space: nowrap; }
         .bolha-entrada { align-self: flex-start; background: var(--surface-1); border: 1px solid var(--grid); border-bottom-left-radius: 3px; }
         .bolha-saida { align-self: flex-end; background: color-mix(in srgb, var(--brand) 15%, var(--surface-1)); border-bottom-right-radius: 3px; }
