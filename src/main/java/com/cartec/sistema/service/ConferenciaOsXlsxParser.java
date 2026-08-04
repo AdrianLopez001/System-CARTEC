@@ -39,13 +39,19 @@ public final class ConferenciaOsXlsxParser {
         List<ConferenciaOsParser.OsImportada> ordens = new ArrayList<>();
         List<String> divergencias = new ArrayList<>();
 
+        // As 2 primeiras linhas do export .xls real (confirmado 04/08/2026)
+        // sao titulo/subtitulo do relatorio, nao o cabecalho - procura a
+        // linha certa em vez de assumir que e a primeira (mesmo ajuste ja
+        // aplicado no ConferenciaOsItemXlsxParser).
         Iterator<Row> linhas = sheet.iterator();
-        if (!linhas.hasNext()) {
-            return new ConferenciaOsParser.Resultado(ordens, divergencias);
+        Map<String, Integer> colunas = null;
+        while (linhas.hasNext() && colunas == null) {
+            Map<String, Integer> mapa = mapearColunas(linhas.next());
+            if (mapa.containsKey("os") && mapa.containsKey("cliente")) {
+                colunas = mapa;
+            }
         }
-
-        Map<String, Integer> colunas = mapearColunas(linhas.next());
-        if (!colunas.containsKey("os")) {
+        if (colunas == null) {
             divergencias.add("Cabecalho sem coluna \"OS\" reconhecida - nao foi possivel importar nada");
             return new ConferenciaOsParser.Resultado(ordens, divergencias);
         }
