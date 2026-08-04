@@ -2,11 +2,13 @@ package com.cartec.sistema.service;
 
 import com.cartec.sistema.dto.ResultadoImportacao;
 import com.cartec.sistema.model.Evento;
+import com.cartec.sistema.model.ItemServico;
 import com.cartec.sistema.model.OrdemServico;
 import com.cartec.sistema.model.TipoEvento;
 import com.cartec.sistema.model.VendaMensal;
 import com.cartec.sistema.repository.ClienteRepository;
 import com.cartec.sistema.repository.EventoRepository;
+import com.cartec.sistema.repository.ItemServicoRepository;
 import com.cartec.sistema.repository.OrdemServicoRepository;
 import com.cartec.sistema.repository.VendaMensalRepository;
 import com.cartec.sistema.util.PhoneUtils;
@@ -41,15 +43,18 @@ public class IngestaoService {
     private final ClienteRepository clienteRepository;
     private final VendaMensalRepository vendaMensalRepository;
     private final EventoRepository eventoRepository;
+    private final ItemServicoRepository itemServicoRepository;
 
     public IngestaoService(OrdemServicoRepository ordemServicoRepository,
                             ClienteRepository clienteRepository,
                             VendaMensalRepository vendaMensalRepository,
-                            EventoRepository eventoRepository) {
+                            EventoRepository eventoRepository,
+                            ItemServicoRepository itemServicoRepository) {
         this.ordemServicoRepository = ordemServicoRepository;
         this.clienteRepository = clienteRepository;
         this.vendaMensalRepository = vendaMensalRepository;
         this.eventoRepository = eventoRepository;
+        this.itemServicoRepository = itemServicoRepository;
     }
 
     @Transactional
@@ -97,26 +102,51 @@ public class IngestaoService {
         return new ResultadoImportacao(totalLinhas, totalGravado, divergencias);
     }
 
+    @Transactional
     public ResultadoImportacao importarConferenciaOsItemXls(MultipartFile arquivo) throws IOException {
+        ConferenciaOsItemXlsxParser.Resultado resultado;
         try (InputStream in = arquivo.getInputStream();
              Workbook workbook = WorkbookFactory.create(in)) {
+            resultado = ConferenciaOsItemXlsxParser.parse(workbook.getSheetAt(0));
+        }
 
-            Sheet sheet = workbook.getSheetAt(0);
-            // Layout esperado (ver secao 4): header na linha 1, 20 colunas fixas,
-            // descartar linhas com OS nao numerica.
-            int totalLinhas = sheet.getPhysicalNumberOfRows();
+        List<String> divergencias = new ArrayList<>(resultado.divergencias());
+        int totalGravado = 0;
+        // Ao ver a primeira peca de uma OS, apaga os itens anteriores dela
+        // (se essa OS ja tinha sido importada antes) e insere os itens do
+        // arquivo atual - assim reimportar o mesmo arquivo (ou uma correcao)
+        // substitui em vez de duplicar.
+        java.util.Set<String> osJaLimpas = new java.util.HashSet<>();
 
-            // TODO: iterar linhas a partir do header, mapear as 20 colunas fixas para
-            // ItemServico e gravar via ItemServicoRepository, associando a OrdemServico existente.
-            for (Row row : sheet) {
-                // placeholder de iteracao ate a logica de mapeamento ser definida
-                if (row == null) {
-                    continue;
-                }
+        for (ConferenciaOsItemXlsxParser.ItemImportado item : resultado.itens()) {
+            var osOpt = ordemServicoRepository.findByNumero(item.numeroOs);
+            if (osOpt.isEmpty()) {
+                divergencias.add("Item da OS " + item.numeroOs + " (" + item.descricao + ") ignorado: OS nao encontrada - importe a Conferencia de OS desse periodo primeiro");
+                continue;
+            }
+            OrdemServico os = osOpt.get();
+            if (osJaLimpas.add(item.numeroOs)) {
+                itemServicoRepository.deleteByOrdemServicoId(os.getId());
             }
 
-            return ResultadoImportacao.of(totalLinhas, 0);
+            ItemServico entidade = new ItemServico();
+            entidade.setOrdemServico(os);
+            entidade.setCodigo(item.codigo);
+            entidade.setDescricao(item.descricao);
+            entidade.setGrupo(item.grupo);
+            entidade.setArea(item.area);
+            entidade.setValorUnitario(item.valorUnitario);
+            entidade.setQuantidade(item.quantidade);
+            entidade.setValorTotal(item.valorTotal);
+            entidade.setCustoUnitario(item.custoUnitario);
+            entidade.setCustoTotal(item.custoTotal);
+            entidade.setExecutor(item.executor);
+            itemServicoRepository.save(entidade);
+            totalGravado++;
         }
+
+        int totalLinhas = resultado.itens().size() + resultado.divergencias().size();
+        return new ResultadoImportacao(totalLinhas, totalGravado, divergencias);
     }
 
     @Transactional

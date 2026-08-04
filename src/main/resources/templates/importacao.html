@@ -70,6 +70,28 @@
             <div id="resOs" class="resultado-box"></div>
         </section>
 
+        <!-- CARD 2B: ITENS/PEÇAS DA CONFERÊNCIA DE OS -->
+        <section class="card upload-card">
+            <div>
+                <h2 style="margin-top:0;">🔩 Importar Itens da Conferência de OS (XLS)</h2>
+                <p class="descricao">
+                    Suba o <code>ConferenciaOSItem.xls</code> — peças e serviços de cada OS (código, grupo, valor, custo).
+                    Precisa importar a Conferência de OS do mesmo período primeiro (card acima).
+                </p>
+                <form id="formOsItem" enctype="multipart/form-data">
+                    <div class="upload-area">
+                        <label for="fileOsItem" style="cursor:pointer; display:block;">
+                            <span style="font-size:2rem; display:block; margin-bottom:8px;">🔩</span>
+                            <strong>Clique aqui para escolher o arquivo (.xls)</strong>
+                        </label>
+                        <input type="file" id="fileOsItem" accept=".xls,.xlsx" required style="margin-top:10px;">
+                    </div>
+                    <button type="submit" class="botao" style="width:100%; margin-top:16px;">Importar Itens das OS 🔧</button>
+                </form>
+            </div>
+            <div id="resOsItem" class="resultado-box"></div>
+        </section>
+
         <!-- CARD 3: VENDAS POR MÊS / FATURAMENTO -->
         <section class="card upload-card">
             <div>
@@ -162,6 +184,11 @@
         const file = document.getElementById('fileOs').files[0];
         const endpoint = file && file.name.endsWith('.pdf') ? '/api/ingestao/conferencia-os-pdf' : '/api/ingestao/conferencia-os-xlsx';
         enviarArquivo(endpoint, 'fileOs', 'resOs');
+    });
+
+    document.getElementById('formOsItem').addEventListener('submit', (e) => {
+        e.preventDefault();
+        enviarArquivo('/api/ingestao/conferencia-os-item-xls', 'fileOsItem', 'resOsItem');
     });
 
     document.getElementById('formVendas').addEventListener('submit', (e) => {

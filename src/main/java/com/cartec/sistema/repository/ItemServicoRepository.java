@@ -10,4 +10,6 @@ public interface ItemServicoRepository extends JpaRepository<ItemServico, Long> 
     List<ItemServico> findByOrdemServicoId(Long ordemServicoId);
 
     List<ItemServico> findByGrupo(String grupo);
+
+    void deleteByOrdemServicoId(Long ordemServicoId);
 }
