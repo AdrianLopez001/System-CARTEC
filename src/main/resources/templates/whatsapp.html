@@ -14,51 +14,65 @@
         .qr-box { background: #ffffff; padding: 16px; border-radius: 8px; text-align: center; border: 1px solid var(--grid); margin-top: 12px; }
         .qr-box img { width: 220px; height: 220px; display: block; margin: 0 auto 10px auto; }
 
-        /* Layout split-view do chat */
+        /* Layout split-view do chat, estilo WhatsApp: coluna de contatos +
+           thread com cabecalho/mensagens/composer fixos. Toda a cadeia
+           flex/grid precisa de min-height:0, senao o item cresce pro
+           tamanho do conteudo (thread longa) e empurra o composer pra
+           fora da area visivel em vez de deixar so as mensagens rolarem. */
         .whatsapp-shell {
             display: grid;
-            grid-template-columns: 320px 1fr;
+            grid-template-columns: 340px 1fr;
             border: 1px solid var(--grid);
-            border-radius: 4px;
+            border-radius: 10px;
             overflow: hidden;
-            height: calc(100vh - 230px);
-            min-height: 480px;
+            height: calc(100vh - 214px);
+            min-height: 520px;
             background: var(--surface-1);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
         }
-        @media (max-width: 850px) { .whatsapp-shell { grid-template-columns: 1fr; height: auto; } }
+        @media (max-width: 850px) { .whatsapp-shell { grid-template-columns: 1fr; } }
 
         /* Coluna de contatos */
-        .lista-contatos { border-right: 1px solid var(--grid); overflow-y: auto; display: flex; flex-direction: column; }
-        .contato-item { padding: 12px 16px; border-bottom: 1px solid var(--grid); cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
+        .lista-contatos { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--grid); background: var(--surface-1); }
+        .busca-contatos { padding: 10px 12px; border-bottom: 1px solid var(--grid); flex-shrink: 0; }
+        .busca-contatos input { margin: 0; width: 100%; border-radius: 20px; background: var(--page); font-size: 0.85rem; padding: 8px 14px; }
+        .lista-contatos-itens { flex: 1; min-height: 0; overflow-y: auto; }
+
+        .contato-item { padding: 10px 14px; border-bottom: 1px solid var(--grid); border-left: 3px solid transparent; cursor: pointer; display: flex; gap: 10px; align-items: flex-start; transition: background .12s, border-color .12s; }
         .contato-item:hover { background: var(--page); }
-        .contato-item.ativo { background: color-mix(in srgb, var(--brand) 10%, transparent); }
+        .contato-item.ativo { background: color-mix(in srgb, var(--brand) 8%, var(--surface-1)); border-left-color: var(--brand); }
+        .avatar { flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%; background: var(--topbar); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.82rem; letter-spacing: 0.02em; }
+        .contato-corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
         .contato-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
-        .contato-nome { font-weight: 600; font-size: 0.92rem; }
-        .contato-hora { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
-        .contato-preview { font-size: 0.82rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .contato-nome { font-weight: 600; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .contato-hora { font-size: 0.7rem; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+        .contato-preview { font-size: 0.8rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .contato-badges { display: flex; gap: 4px; flex-wrap: wrap; }
-        .ponto-nao-lida { background: var(--brand); color: #fff; border-radius: 20px; font-size: 0.68rem; font-weight: 700; padding: 1px 7px; }
+        .ponto-nao-lida { background: var(--brand); color: #fff; border-radius: 20px; font-size: 0.66rem; font-weight: 700; padding: 1px 7px; }
 
         /* Coluna da thread */
-        .thread-coluna { display: flex; flex-direction: column; min-width: 0; }
-        .thread-cabecalho { padding: 12px 16px; border-bottom: 1px solid var(--grid); }
-        .thread-cabecalho .nome { font-weight: 700; font-size: 0.98rem; }
-        .thread-cabecalho .telefone { font-size: 0.78rem; color: var(--muted); }
-        .classificacao-controles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-top: 10px; }
-        .classificacao-controles select, .classificacao-controles input { margin-bottom: 0; padding: 6px 8px; font-size: 0.78rem; }
-        .classificacao-controles label { margin-bottom: 2px; font-size: 0.68rem; }
+        .thread-coluna { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--page); }
+        .thread-cabecalho { padding: 10px 18px; border-bottom: 1px solid var(--grid); background: var(--surface-1); flex-shrink: 0; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .thread-cabecalho .info-contato { display: flex; align-items: center; gap: 10px; flex: 1 1 220px; min-width: 0; }
+        .thread-cabecalho .avatar { width: 36px; height: 36px; font-size: 0.74rem; }
+        .thread-cabecalho .textos { min-width: 0; }
+        .thread-cabecalho .nome { font-weight: 700; font-size: 0.94rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .thread-cabecalho .telefone { font-size: 0.75rem; color: var(--muted); }
+        .classificacao-controles { display: flex; flex-wrap: wrap; gap: 6px; flex: 2 1 340px; }
+        .classificacao-controles select, .classificacao-controles input { margin: 0; padding: 5px 10px; font-size: 0.74rem; border-radius: 14px; width: auto; min-width: 108px; }
 
-        .thread-mensagens { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 8px; background: var(--page); }
-        .bolha { max-width: 65%; padding: 8px 12px; border-radius: 10px; font-size: 0.87rem; line-height: 1.4; word-wrap: break-word; }
-        .bolha .hora { display: block; font-size: 0.68rem; margin-top: 3px; opacity: 0.7; text-align: right; }
-        .bolha-entrada { align-self: flex-start; background: var(--surface-1); border: 1px solid var(--grid); border-bottom-left-radius: 2px; }
-        .bolha-saida { align-self: flex-end; background: color-mix(in srgb, var(--brand) 14%, var(--surface-1)); border-bottom-right-radius: 2px; }
+        .thread-mensagens { flex: 1; min-height: 0; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 6px; }
+        .bolha { max-width: 68%; padding: 8px 34px 8px 12px; border-radius: 12px; font-size: 0.87rem; line-height: 1.42; word-wrap: break-word; position: relative; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05); }
+        .bolha .hora { position: absolute; right: 10px; bottom: 7px; font-size: 0.64rem; opacity: 0.65; white-space: nowrap; }
+        .bolha-entrada { align-self: flex-start; background: var(--surface-1); border: 1px solid var(--grid); border-bottom-left-radius: 3px; }
+        .bolha-saida { align-self: flex-end; background: color-mix(in srgb, var(--brand) 15%, var(--surface-1)); border-bottom-right-radius: 3px; }
 
         .thread-vazia { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--muted); font-size: 0.9rem; text-align: center; padding: 20px; }
 
-        .thread-form { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--grid); background: var(--surface-1); }
-        .thread-form textarea { flex: 1; min-height: 40px; max-height: 100px; margin-bottom: 0; resize: none; }
-        .thread-form button { align-self: flex-end; }
+        .thread-form { display: flex; gap: 10px; align-items: flex-end; padding: 12px 16px; border-top: 1px solid var(--grid); background: var(--surface-1); flex-shrink: 0; }
+        .thread-form textarea { flex: 1; min-height: 42px; max-height: 120px; margin: 0; resize: none; border-radius: 20px; padding: 10px 16px; }
+        .thread-form button.botao-enviar { align-self: flex-end; flex-shrink: 0; border-radius: 50%; width: 42px; height: 42px; padding: 0; display: flex; align-items: center; justify-content: center; }
+        .thread-form button.botao-enviar svg { width: 18px; height: 18px; }
     </style>
 </head>
 <body>
@@ -89,8 +103,13 @@
 
     <!-- CHAT SPLIT-VIEW -->
     <div class="whatsapp-shell">
-        <aside class="lista-contatos" id="listaContatos">
-            <p class="vazio" style="padding:16px;">Carregando conversas...</p>
+        <aside class="lista-contatos">
+            <div class="busca-contatos">
+                <input type="text" id="buscaContato" placeholder="Pesquisar conversa..." oninput="renderizarListaContatos()">
+            </div>
+            <div class="lista-contatos-itens" id="listaContatos">
+                <p class="vazio" style="padding:16px;">Carregando conversas...</p>
+            </div>
         </aside>
 
         <section class="thread-coluna">
@@ -180,30 +199,50 @@
         return c.telefone;
     }
 
+    function iniciais(nome) {
+        const partes = (nome || '').trim().split(/\s+/).filter(Boolean);
+        if (partes.length === 0) return '?';
+        if (partes.length === 1) return partes[0].substring(0, 2).toUpperCase();
+        return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
+    }
+
     function renderizarListaContatos() {
         const container = document.getElementById('listaContatos');
+        const termo = (document.getElementById('buscaContato')?.value || '').trim().toLowerCase();
+        const filtradas = termo
+            ? conversas.filter(c => nomeConversa(c).toLowerCase().includes(termo) || c.telefone.includes(termo))
+            : conversas;
+
         if (conversas.length === 0) {
             container.innerHTML = '<p class="vazio" style="padding:16px;">Nenhuma conversa ainda.</p>';
             return;
         }
+        if (filtradas.length === 0) {
+            container.innerHTML = '<p class="vazio" style="padding:16px;">Nenhuma conversa encontrada.</p>';
+            return;
+        }
         container.innerHTML = '';
-        conversas.forEach(c => {
+        filtradas.forEach(c => {
             const item = document.createElement('div');
             item.className = 'contato-item' + (c.telefone === telefoneAtivo ? ' ativo' : '');
             item.onclick = () => selecionarConversa(c.telefone);
 
             const hora = c.dataUltimaMensagem ? new Date(c.dataUltimaMensagem).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+            const nome = nomeConversa(c);
 
             item.innerHTML = `
-                <div class="contato-topo">
-                    <span class="contato-nome">${escapeHtml(nomeConversa(c))}</span>
-                    <span class="contato-hora">${hora}</span>
-                </div>
-                <div class="contato-preview">${escapeHtml(c.resumo || c.telefone)}</div>
-                <div class="contato-badges">
-                    ${!c.lida ? '<span class="ponto-nao-lida">NOVA</span>' : ''}
-                    ${c.intencao ? `<span class="badge">${escapeHtml(c.intencao)}</span>` : ''}
-                    ${c.urgencia === 'urgente' ? '<span class="badge seg-inativo">urgente</span>' : ''}
+                <span class="avatar">${escapeHtml(iniciais(nome))}</span>
+                <div class="contato-corpo">
+                    <div class="contato-topo">
+                        <span class="contato-nome">${escapeHtml(nome)}</span>
+                        <span class="contato-hora">${hora}</span>
+                    </div>
+                    <div class="contato-preview">${escapeHtml(c.resumo || c.telefone)}</div>
+                    <div class="contato-badges">
+                        ${!c.lida ? '<span class="ponto-nao-lida">NOVA</span>' : ''}
+                        ${c.intencao ? `<span class="badge">${escapeHtml(c.intencao)}</span>` : ''}
+                        ${c.urgencia === 'urgente' ? '<span class="badge seg-inativo">urgente</span>' : ''}
+                    </div>
                 </div>
             `;
             container.appendChild(item);
@@ -224,6 +263,19 @@
         document.getElementById('formEnvio').addEventListener('submit', enviarMensagem);
         document.getElementById('formClassificacao').addEventListener('change', salvarClassificacao);
 
+        const campoTexto = document.getElementById('textoEnvio');
+        campoTexto.addEventListener('input', () => {
+            campoTexto.style.height = 'auto';
+            campoTexto.style.height = Math.min(campoTexto.scrollHeight, 120) + 'px';
+        });
+        campoTexto.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('formEnvio').requestSubmit();
+            }
+        });
+        campoTexto.focus();
+
         await carregarMensagens(telefone);
 
         if (conversa && !conversa.lida) {
@@ -237,8 +289,13 @@
         const nome = conversa ? nomeConversa(conversa) : telefoneAtivo;
         return `
             <div class="thread-cabecalho">
-                <div class="nome">${escapeHtml(nome)}</div>
-                <div class="telefone">${escapeHtml(telefoneAtivo)}</div>
+                <div class="info-contato">
+                    <span class="avatar">${escapeHtml(iniciais(nome))}</span>
+                    <div class="textos">
+                        <div class="nome">${escapeHtml(nome)}</div>
+                        <div class="telefone">${escapeHtml(telefoneAtivo)}</div>
+                    </div>
+                </div>
                 <form id="formClassificacao" class="classificacao-controles">
                     ${selectHtml('intencao', OPCOES_INTENCAO, conversa ? conversa.intencao : null)}
                     ${selectHtml('urgencia', OPCOES_URGENCIA, conversa ? conversa.urgencia : null)}
@@ -248,8 +305,10 @@
             </div>
             <div class="thread-mensagens" id="threadMensagens"></div>
             <form id="formEnvio" class="thread-form">
-                <textarea id="textoEnvio" placeholder="Digite uma mensagem..." required></textarea>
-                <button type="submit" class="botao">Enviar</button>
+                <textarea id="textoEnvio" placeholder="Digite uma mensagem..." rows="1" required></textarea>
+                <button type="submit" class="botao-enviar" title="Enviar">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 20L21 12L3 4V10L16 12L3 14V20Z" fill="currentColor"/></svg>
+                </button>
             </form>
         `;
     }
@@ -301,6 +360,7 @@
             });
             if (res.ok) {
                 campo.value = '';
+                campo.style.height = 'auto';
             } else {
                 const data = await res.json().catch(() => ({}));
                 alert('Erro ao enviar: ' + (data.erro || 'verifique se o bot está CONECTADO.'));
