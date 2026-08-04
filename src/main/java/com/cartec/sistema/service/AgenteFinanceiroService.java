@@ -193,7 +193,7 @@ public class AgenteFinanceiroService {
                                              RankingResultado ranking, List<MargemGrupo> margens) {
         List<String> recomendacoes = new ArrayList<>();
 
-        if (projecao.valorMeta() != null && projecao.diasDecorridos() > 0) {
+        if (projecao.valorMeta() != null && projecao.valorMeta().signum() > 0 && projecao.diasDecorridos() > 0) {
             BigDecimal ritmoAtualDia = projecao.valorAtual().divide(BigDecimal.valueOf(projecao.diasDecorridos()), 2, RoundingMode.HALF_UP);
             BigDecimal faltaParaMeta = projecao.valorMeta().subtract(projecao.valorAtual());
             if (faltaParaMeta.compareTo(BigDecimal.ZERO) > 0 && projecao.diasRestantes() > 0) {

@@ -31,9 +31,9 @@
         </div>
         <div class="tile">
             <div class="label">Meta do mês</div>
-            <div class="value" th:if="${analise.projecao().valorMeta() != null}"
+            <div class="value" th:if="${analise.projecao().valorMeta() != null and analise.projecao().valorMeta().signum() > 0}"
                  th:text="${'R$ ' + #numbers.formatDecimal(analise.projecao().valorMeta(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
-            <div class="value dash" th:if="${analise.projecao().valorMeta() == null}">
+            <div class="value dash" th:if="${analise.projecao().valorMeta() == null or analise.projecao().valorMeta().signum() <= 0}">
                 <a th:href="@{/}">cadastre no Dashboard</a>
             </div>
         </div>
@@ -43,9 +43,9 @@
         </div>
         <div class="tile">
             <div class="label">% da meta (atual → projetado)</div>
-            <div class="value" th:if="${analise.projecao().percentualMetaAtual() != null}"
+            <div class="value" th:if="${analise.projecao().valorMeta() != null and analise.projecao().valorMeta().signum() > 0}"
                  th:text="${#numbers.formatDecimal(analise.projecao().percentualMetaAtual(), 1, 'POINT', 1, 'COMMA') + '% → ' + #numbers.formatDecimal(analise.projecao().percentualMetaProjetado(), 1, 'POINT', 1, 'COMMA') + '%'}">0% → 0%</div>
-            <div class="value dash" th:if="${analise.projecao().percentualMetaAtual() == null}">sem meta</div>
+            <div class="value dash" th:if="${analise.projecao().valorMeta() == null or analise.projecao().valorMeta().signum() <= 0}">sem meta</div>
         </div>
     </section>
 
