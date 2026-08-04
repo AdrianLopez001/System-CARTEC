@@ -19,14 +19,23 @@
            flex/grid precisa de min-height:0, senao o item cresce pro
            tamanho do conteudo (thread longa) e empurra o composer pra
            fora da area visivel em vez de deixar so as mensagens rolarem. */
+        /* Altura calculada via JS (ajustarAlturaShell) em vez de
+           calc(100vh - Npx) fixo: a altura acima do chat varia (quebra de
+           linha do header, etc.) e um numero fixo sempre erra pra algum
+           lado - ou sobra espaco ou o composer fica fora da tela e a
+           pagina toda precisa rolar, que e o que nao queremos aqui (o
+           composer tem que ficar sempre visivel, como no WhatsApp). O
+           valor abaixo e so um fallback pro primeiro paint antes do JS
+           calcular. */
+        main { padding-bottom: 16px; }
         .whatsapp-shell {
             display: grid;
             grid-template-columns: 340px 1fr;
             border: 1px solid var(--grid);
             border-radius: 10px;
             overflow: hidden;
-            height: calc(100vh - 214px);
-            min-height: 520px;
+            height: 70vh;
+            min-height: 420px;
             background: var(--surface-1);
             box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
         }
@@ -425,10 +434,23 @@
         return escapeHtml(texto).replace(/"/g, '&quot;');
     }
 
+    // ───────────── Altura do chat: preenche o espaco visivel restante,
+    // sem deixar a pagina inteira rolar (o composer tem que ficar fixo) ─────
+    function ajustarAlturaShell() {
+        const shell = document.querySelector('.whatsapp-shell');
+        if (!shell) return;
+        const topo = shell.getBoundingClientRect().top;
+        const alturaDisponivel = window.innerHeight - topo - 16;
+        shell.style.height = Math.max(alturaDisponivel, 420) + 'px';
+    }
+    window.addEventListener('resize', ajustarAlturaShell);
+
     verificarStatus();
     setInterval(verificarStatus, 3000);
     carregarConversas();
     conectarSse();
+    ajustarAlturaShell();
+    setTimeout(ajustarAlturaShell, 300);
 </script>
 </body>
 </html>
