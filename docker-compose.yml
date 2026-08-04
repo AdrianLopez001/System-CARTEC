@@ -4,7 +4,11 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      # So localhost: Docker mexe direto no iptables e ignora regras do ufw,
+      # entao publicar em "8080:8080" (=0.0.0.0:8080) fica exposto pra
+      # internet mesmo com o ufw so liberando 80/22. O Nginx (porta 80) fala
+      # com o app via 127.0.0.1:8080, entao nao precisa expor pra fora.
+      - "127.0.0.1:8080:8080"
     volumes:
       - ./data:/app/data
     environment:
