@@ -6,7 +6,10 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/metas")
@@ -39,5 +42,43 @@ public class MetaController {
             return repository.save(existente);
         }
         return repository.save(meta);
+    }
+
+    /**
+     * Limpeza pontual: enquanto o POST antigo nao fazia upsert (ver
+     * criar()), reenviar o formulario de meta gerava linhas duplicadas
+     * pro mesmo indicador+periodo, o que derruba ProjecaoMensalService
+     * (Dashboard e Agente Financeiro) com IncorrectResultSizeDataAccessException.
+     * Mantem so a linha de maior id (mais recente) por indicador+periodo,
+     * apaga as demais. Idempotente - rodar de novo sem duplicata nao faz nada.
+     */
+    @DeleteMapping("/duplicadas")
+    public Map<String, Object> limparDuplicadas() {
+        List<Meta> todas = repository.findAll();
+        Map<String, List<Meta>> porChave = new HashMap<>();
+        for (Meta m : todas) {
+            String chave = m.getIndicador() + "|" + m.getPeriodoReferencia();
+            porChave.computeIfAbsent(chave, k -> new ArrayList<>()).add(m);
+        }
+
+        List<Long> removidos = new ArrayList<>();
+        for (List<Meta> grupo : porChave.values()) {
+            if (grupo.size() <= 1) {
+                continue;
+            }
+            Meta manter = grupo.stream().max((a, b) -> Long.compare(a.getId(), b.getId())).orElseThrow();
+            for (Meta m : grupo) {
+                if (!m.getId().equals(manter.getId())) {
+                    removidos.add(m.getId());
+                    repository.deleteById(m.getId());
+                }
+            }
+        }
+
+        Map<String, Object> resultado = new HashMap<>();
+        resultado.put("totalAntes", todas.size());
+        resultado.put("idsRemovidos", removidos);
+        resultado.put("totalDepois", todas.size() - removidos.size());
+        return resultado;
     }
 }
