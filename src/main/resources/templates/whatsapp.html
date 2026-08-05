@@ -55,6 +55,10 @@
         .lista-contatos { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--grid); background: var(--surface-1); }
         .busca-contatos { padding: 10px 12px; border-bottom: 1px solid var(--grid); flex-shrink: 0; }
         .busca-contatos input { margin: 0; width: 100%; border-radius: 20px; background: var(--page); font-size: 0.85rem; padding: 8px 14px; }
+        .filtros-conversa { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+        .chip-filtro { border: 1px solid var(--grid); background: var(--surface-1); color: var(--text-secondary); border-radius: 20px; padding: 4px 10px; font-size: 0.75rem; cursor: pointer; transition: background .12s, color .12s, border-color .12s; }
+        .chip-filtro:hover { border-color: var(--brand); }
+        .chip-filtro.ativo { background: var(--brand); border-color: var(--brand); color: #fff; }
         .lista-contatos-itens { flex: 1; min-height: 0; overflow-y: auto; }
 
         .contato-item { padding: 10px 14px; border-bottom: 1px solid var(--grid); border-left: 3px solid transparent; cursor: pointer; display: flex; gap: 10px; align-items: flex-start; transition: background .12s, border-color .12s; }
@@ -162,6 +166,11 @@
         <aside class="lista-contatos">
             <div class="busca-contatos">
                 <input type="text" id="buscaContato" placeholder="Pesquisar conversa..." oninput="renderizarListaContatos()">
+                <div class="filtros-conversa" id="filtrosConversa">
+                    <button type="button" class="chip-filtro ativo" data-filtro="todas" onclick="aplicarFiltroConversa('todas')">Todas</button>
+                    <button type="button" class="chip-filtro" data-filtro="nao-lidas" onclick="aplicarFiltroConversa('nao-lidas')">Não lidas</button>
+                    <button type="button" class="chip-filtro" data-filtro="urgente" onclick="aplicarFiltroConversa('urgente')">🔴 Urgente</button>
+                </div>
             </div>
             <div class="lista-contatos-itens" id="listaContatos">
                 <p class="vazio" style="padding:16px;">Carregando conversas...</p>
@@ -183,6 +192,15 @@
 
     let conversas = [];
     let telefoneAtivo = null;
+    let filtroConversaAtivo = 'todas';
+
+    function aplicarFiltroConversa(filtro) {
+        filtroConversaAtivo = filtro;
+        document.querySelectorAll('.chip-filtro').forEach(btn => {
+            btn.classList.toggle('ativo', btn.dataset.filtro === filtro);
+        });
+        renderizarListaContatos();
+    }
 
     // ───────────── Conexão do bot ─────────────
     async function verificarStatus() {
@@ -265,9 +283,15 @@
     function renderizarListaContatos() {
         const container = document.getElementById('listaContatos');
         const termo = (document.getElementById('buscaContato')?.value || '').trim().toLowerCase();
-        const filtradas = termo
+        let filtradas = termo
             ? conversas.filter(c => nomeConversa(c).toLowerCase().includes(termo) || c.telefone.includes(termo))
             : conversas;
+
+        if (filtroConversaAtivo === 'nao-lidas') {
+            filtradas = filtradas.filter(c => !c.lida);
+        } else if (filtroConversaAtivo === 'urgente') {
+            filtradas = filtradas.filter(c => c.urgencia === 'urgente');
+        }
 
         if (conversas.length === 0) {
             container.innerHTML = '<p class="vazio" style="padding:16px;">Nenhuma conversa ainda.</p>';
