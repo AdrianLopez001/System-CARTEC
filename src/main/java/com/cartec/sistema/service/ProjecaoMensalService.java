@@ -109,10 +109,25 @@ public class ProjecaoMensalService {
         int diasDecorridos = mesAtual ? hoje.getDayOfMonth() : diasNoMes;
         int diasRestantes = Math.max(0, diasNoMes - diasDecorridos);
 
-        BigDecimal projecaoFechamento = diasDecorridos > 0
-                ? valorAtual.multiply(BigDecimal.valueOf(diasNoMes))
-                        .divide(BigDecimal.valueOf(diasDecorridos), 2, RoundingMode.HALF_UP)
+        // Dias uteis = segunda a sabado (oficina atende sabado, so domingo fica de
+        // fora) - projecao por ritmo de calendario corrido superestima o quanto falta
+        // por dia, porque conta domingo como se fosse um dia de faturamento normal.
+        int diasUteisNoMes = contarDiasUteis(mes.atDay(1), mes.atEndOfMonth());
+        int diasUteisDecorridos = mesAtual ? contarDiasUteis(mes.atDay(1), hoje) : diasUteisNoMes;
+        int diasUteisRestantes = Math.max(0, diasUteisNoMes - diasUteisDecorridos);
+
+        BigDecimal projecaoFechamento = diasUteisDecorridos > 0
+                ? valorAtual.multiply(BigDecimal.valueOf(diasUteisNoMes))
+                        .divide(BigDecimal.valueOf(diasUteisDecorridos), 2, RoundingMode.HALF_UP)
                 : valorAtual;
+
+        BigDecimal valorNecessarioPorDiaUtil = null;
+        if (valorMeta != null && diasUteisRestantes > 0) {
+            BigDecimal faltante = valorMeta.subtract(valorAtual);
+            valorNecessarioPorDiaUtil = faltante.compareTo(BigDecimal.ZERO) > 0
+                    ? faltante.divide(BigDecimal.valueOf(diasUteisRestantes), 2, RoundingMode.HALF_UP)
+                    : BigDecimal.ZERO;
+        }
 
         BigDecimal percentualMetaAtual = valorMeta != null ? metricaService.calcularPercentualMeta(valorAtual, valorMeta) : null;
         BigDecimal percentualMetaProjetado = valorMeta != null ? metricaService.calcularPercentualMeta(projecaoFechamento, valorMeta) : null;
@@ -131,17 +146,30 @@ public class ProjecaoMensalService {
 
         return new Projecao(mes, valorAtual, valorMeta, projecaoFechamento,
                 percentualMetaAtual, percentualMetaProjetado,
-                diasDecorridos, diasNoMes, diasRestantes, ordensDoMes.size(), acumuladoPorDia, valorPorDia);
+                diasDecorridos, diasNoMes, diasRestantes, ordensDoMes.size(), acumuladoPorDia, valorPorDia,
+                diasUteisNoMes, diasUteisDecorridos, diasUteisRestantes, valorNecessarioPorDiaUtil);
     }
 
     private LocalDate dataDe(OrdemServico os) {
         return os.getDataFaturamento() != null ? os.getDataFaturamento() : os.getData();
     }
 
+    private int contarDiasUteis(LocalDate inicio, LocalDate fim) {
+        int total = 0;
+        for (LocalDate d = inicio; !d.isAfter(fim); d = d.plusDays(1)) {
+            if (d.getDayOfWeek() != DayOfWeek.SUNDAY) {
+                total++;
+            }
+        }
+        return total;
+    }
+
     public record Projecao(YearMonth mes, BigDecimal valorAtual, BigDecimal valorMeta, BigDecimal projecaoFechamento,
                             BigDecimal percentualMetaAtual, BigDecimal percentualMetaProjetado,
                             int diasDecorridos, int diasNoMes, int diasRestantes, int totalOs,
                             TreeMap<LocalDate, BigDecimal> acumuladoPorDia,
-                            TreeMap<LocalDate, BigDecimal> valorPorDia) {
+                            TreeMap<LocalDate, BigDecimal> valorPorDia,
+                            int diasUteisNoMes, int diasUteisDecorridos, int diasUteisRestantes,
+                            BigDecimal valorNecessarioPorDiaUtil) {
     }
 }

@@ -45,13 +45,33 @@
                  th:text="${'R$ ' + #numbers.formatDecimal(projecao.valorAtual / projecao.totalOs, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
             <div class="value dash" th:if="${projecao.totalOs == 0}">sem OS ainda</div>
         </div>
+        <div class="tile">
+            <div class="label">Meta do mês</div>
+            <div class="value" th:if="${projecao.valorMeta != null}"
+                 th:text="${'R$ ' + #numbers.formatDecimal(projecao.valorMeta, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+            <div class="value dash" th:if="${projecao.valorMeta == null}">não cadastrada</div>
+        </div>
+        <div class="tile">
+            <div class="label">Faturado até agora (dia <span th:text="${projecao.diasDecorridos}">0</span> de <span th:text="${projecao.diasNoMes}">0</span>)</div>
+            <div class="value" th:text="${'R$ ' + #numbers.formatDecimal(projecao.valorAtual, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+        </div>
+        <div class="tile">
+            <div class="label">Projeção de fechamento</div>
+            <div class="value" th:text="${'R$ ' + #numbers.formatDecimal(projecao.projecaoFechamento, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+        </div>
+        <div class="tile">
+            <div class="label">% da meta (atual → projetado)</div>
+            <div class="value" th:if="${projecao.percentualMetaAtual != null}"
+                 th:text="${#numbers.formatDecimal(projecao.percentualMetaAtual, 1, 'POINT', 1, 'COMMA') + '% → ' + #numbers.formatDecimal(projecao.percentualMetaProjetado, 1, 'POINT', 1, 'COMMA') + '%'}">0% → 0%</div>
+            <div class="value dash" th:if="${projecao.percentualMetaAtual == null}">cadastre a meta</div>
+        </div>
     </section>
 
     <section class="card">
-        <h2>Projeção do mês</h2>
+        <h2>Projeção do mês — estimativa por dias úteis</h2>
         <p class="descricao">
-            Meta de faturamento pro mês e projeção de fechamento por ritmo (o que já foi faturado ÷ dias
-            já passados × dias do mês) — atualiza sozinha conforme mais OS forem importadas/lançadas.
+            Considera dias úteis (segunda a sábado, domingo fora) em vez de dias corridos — mais preciso
+            pro ritmo real da oficina. Atualiza sozinha conforme mais OS forem importadas/lançadas.
         </p>
 
         <form id="formMeta" style="margin-bottom:20px;">
@@ -66,24 +86,23 @@
 
         <div class="tiles">
             <div class="tile">
-                <div class="label">Meta do mês</div>
-                <div class="value" th:if="${projecao.valorMeta != null}"
-                     th:text="${'R$ ' + #numbers.formatDecimal(projecao.valorMeta, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
-                <div class="value dash" th:if="${projecao.valorMeta == null}">não cadastrada</div>
+                <div class="label">Dias úteis</div>
+                <div class="value" th:text="${projecao.diasUteisDecorridos} + ' de ' + ${projecao.diasUteisNoMes}">0 de 0</div>
             </div>
             <div class="tile">
-                <div class="label">Faturado até agora (dia <span th:text="${projecao.diasDecorridos}">0</span> de <span th:text="${projecao.diasNoMes}">0</span>)</div>
-                <div class="value" th:text="${'R$ ' + #numbers.formatDecimal(projecao.valorAtual, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+                <div class="label">Dias úteis restantes</div>
+                <div class="value" th:text="${projecao.diasUteisRestantes}">0</div>
             </div>
             <div class="tile">
-                <div class="label">Projeção de fechamento</div>
+                <div class="label">Precisa faturar por dia útil (pra bater a meta)</div>
+                <div class="value" th:if="${projecao.valorNecessarioPorDiaUtil != null}"
+                     th:text="${'R$ ' + #numbers.formatDecimal(projecao.valorNecessarioPorDiaUtil, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+                <div class="value dash" th:if="${projecao.valorNecessarioPorDiaUtil == null and projecao.valorMeta == null}">cadastre a meta</div>
+                <div class="value dash" th:if="${projecao.valorNecessarioPorDiaUtil == null and projecao.valorMeta != null}">meta já batida</div>
+            </div>
+            <div class="tile">
+                <div class="label">Previsão de fechamento (por dia útil)</div>
                 <div class="value" th:text="${'R$ ' + #numbers.formatDecimal(projecao.projecaoFechamento, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
-            </div>
-            <div class="tile">
-                <div class="label">% da meta (atual → projetado)</div>
-                <div class="value" th:if="${projecao.percentualMetaAtual != null}"
-                     th:text="${#numbers.formatDecimal(projecao.percentualMetaAtual, 1, 'POINT', 1, 'COMMA') + '% → ' + #numbers.formatDecimal(projecao.percentualMetaProjetado, 1, 'POINT', 1, 'COMMA') + '%'}">0% → 0%</div>
-                <div class="value dash" th:if="${projecao.percentualMetaAtual == null}">cadastre a meta</div>
             </div>
         </div>
 
