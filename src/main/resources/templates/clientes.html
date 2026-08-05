@@ -106,6 +106,10 @@
                     <input type="text" id="iePj" placeholder="IE" oninput="filtrarPj()">
                 </div>
                 <div>
+                    <label for="tagPj">Tag</label>
+                    <input type="text" id="tagPj" placeholder="Quente, VIP, etc." oninput="filtrarPj()">
+                </div>
+                <div>
                     <button type="button" class="botao" onclick="filtrarPj()">Filtrar</button>
                     <button type="button" class="botao secundario" onclick="limparFiltrosPj()">Limpar</button>
                 </div>
@@ -119,6 +123,7 @@
                         <th>Inscrição Estadual</th>
                         <th>Telefone / Contato</th>
                         <th>Empresa Vinculada</th>
+                        <th>Tag</th>
                         <th>Ações</th>
                     </tr>
                     </thead>
@@ -126,7 +131,8 @@
                     <tr th:each="c : ${clientes}" th:if="${c.tipoPessoa == 'PJ' or c.tipoPessoa == 'Juridica' or c.cnpj != null}"
                         th:data-nome="${#strings.toLowerCase(c.nome + ' ' + (c.razaoSocial != null ? c.razaoSocial : '') + ' ' + (c.nomeFantasia != null ? c.nomeFantasia : ''))}"
                         th:data-cnpj="${c.cnpj != null ? c.cnpj : ''}"
-                        th:data-ie="${c.inscricaoEstadual != null ? c.inscricaoEstadual : ''}">
+                        th:data-ie="${c.inscricaoEstadual != null ? c.inscricaoEstadual : ''}"
+                        th:data-tag="${c.tag != null ? #strings.toLowerCase(c.tag) : ''}">
                         <td>
                             <a th:href="@{'/clientes/' + ${c.id}}" th:text="${c.razaoSocial != null ? c.razaoSocial : c.nome}" style="font-weight:600;">Razão Social</a>
                             <div th:if="${c.nomeFantasia != null}" style="font-size:0.78rem; color:var(--text-secondary);" th:text="${c.nomeFantasia}">Fantasia</div>
@@ -135,6 +141,7 @@
                         <td th:text="${c.inscricaoEstadual != null ? c.inscricaoEstadual : '-'}">-</td>
                         <td th:text="${c.telefone}">-</td>
                         <td th:text="${c.empresa != null ? c.empresa.nome : 'Direta'}">Empresa</td>
+                        <td><span class="badge" th:if="${c.tag != null}" th:text="${c.tag}">Tag</span><span th:if="${c.tag == null}">-</span></td>
                         <td><a class="botao secundario" style="font-size:0.75rem; padding:4px 8px;" th:href="@{'/clientes/' + ${c.id}}">Ver Ficha</a></td>
                     </tr>
                     </tbody>
@@ -272,16 +279,19 @@
     function filtrarPj() {
         const busca = document.getElementById('buscaPj').value.toLowerCase();
         const ie = document.getElementById('iePj').value.toLowerCase();
+        const tag = document.getElementById('tagPj').value.toLowerCase();
 
         document.querySelectorAll('#tabelaPj tbody tr').forEach(row => {
             const nome = row.dataset.nome || '';
             const cnpj = row.dataset.cnpj || '';
             const ieVal = row.dataset.ie || '';
+            const tg = row.dataset.tag || '';
 
             const bateBusca = !busca || nome.includes(busca) || cnpj.includes(busca);
             const bateIe = !ie || ieVal.includes(ie);
+            const bateTag = !tag || tg.includes(tag);
 
-            row.style.display = (bateBusca && bateIe) ? '' : 'none';
+            row.style.display = (bateBusca && bateIe && bateTag) ? '' : 'none';
         });
     }
 
@@ -295,6 +305,7 @@
     function limparFiltrosPj() {
         document.getElementById('buscaPj').value = '';
         document.getElementById('iePj').value = '';
+        document.getElementById('tagPj').value = '';
         filtrarPj();
     }
 

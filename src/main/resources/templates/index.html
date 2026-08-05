@@ -35,6 +35,16 @@
                  th:text="${#numbers.formatDecimal(percentualMeta, 1, 'POINT', 1, 'COMMA') + '%'}">0%</div>
             <div class="value dash" th:if="${percentualMeta == null}">meta não cadastrada</div>
         </div>
+        <div class="tile">
+            <div class="label">Atendimentos no mês</div>
+            <div class="value" th:text="${projecao.totalOs}">0</div>
+        </div>
+        <div class="tile">
+            <div class="label">Ticket médio do mês</div>
+            <div class="value" th:if="${projecao.totalOs > 0}"
+                 th:text="${'R$ ' + #numbers.formatDecimal(projecao.valorAtual / projecao.totalOs, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+            <div class="value dash" th:if="${projecao.totalOs == 0}">sem OS ainda</div>
+        </div>
     </section>
 
     <section class="card">
@@ -74,16 +84,6 @@
                 <div class="value" th:if="${projecao.percentualMetaAtual != null}"
                      th:text="${#numbers.formatDecimal(projecao.percentualMetaAtual, 1, 'POINT', 1, 'COMMA') + '% → ' + #numbers.formatDecimal(projecao.percentualMetaProjetado, 1, 'POINT', 1, 'COMMA') + '%'}">0% → 0%</div>
                 <div class="value dash" th:if="${projecao.percentualMetaAtual == null}">cadastre a meta</div>
-            </div>
-            <div class="tile">
-                <div class="label">Atendimentos no mês</div>
-                <div class="value" th:text="${projecao.totalOs}">0</div>
-            </div>
-            <div class="tile">
-                <div class="label">Ticket médio do mês</div>
-                <div class="value" th:if="${projecao.totalOs > 0}"
-                     th:text="${'R$ ' + #numbers.formatDecimal(projecao.valorAtual / projecao.totalOs, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
-                <div class="value dash" th:if="${projecao.totalOs == 0}">sem OS ainda</div>
             </div>
         </div>
 
