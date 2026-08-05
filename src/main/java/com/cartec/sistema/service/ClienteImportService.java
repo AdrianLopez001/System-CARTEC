@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Upload de xlsx para salvar/atualizar clientes da base de CRM. Cabecalho
@@ -165,13 +166,31 @@ public class ClienteImportService {
             for (ClienteClassificadoXlsxParser.ContatoImportado c : resultado.contatos()) {
                 String telefone = PhoneUtils.padronizar(c.telefoneBruto);
 
-                Cliente cliente = (c.codigoExterno != null ? clienteRepository.findByCodigoExterno(c.codigoExterno) : java.util.Optional.<Cliente>empty())
-                        .or(() -> clienteRepository.findByTelefone(telefone))
+                Optional<Cliente> porCodigo = c.codigoExterno != null ? clienteRepository.findByCodigoExterno(c.codigoExterno) : Optional.empty();
+                Optional<Cliente> donoDoTelefone = clienteRepository.findByTelefone(telefone);
+
+                // Varias empresas da planilha compartilham o mesmo telefone de
+                // central/recepcao. Telefone e unique no banco - se ja pertence a
+                // outro cadastro (codigo externo diferente), so pula a atualizacao
+                // do telefone nessa linha em vez de estourar a constraint e
+                // derrubar a importacao inteira (a transacao e uma so).
+                boolean telefoneConflitante = donoDoTelefone.isPresent()
+                        && (porCodigo.isEmpty() || !java.util.Objects.equals(porCodigo.get().getId(), donoDoTelefone.get().getId()));
+
+                Cliente cliente = porCodigo.or(() -> telefoneConflitante ? Optional.<Cliente>empty() : donoDoTelefone)
                         .orElseGet(Cliente::new);
+
+                if (telefoneConflitante && cliente.getId() == null) {
+                    divergencias.add("Cliente \"" + c.nome + "\" (codigo " + c.codigoExterno
+                            + "): telefone " + telefone + " ja usado por outro cliente, contato nao importado");
+                    continue;
+                }
 
                 cliente.setCodigoExterno(c.codigoExterno);
                 cliente.setNome(c.nome);
-                cliente.setTelefone(telefone);
+                if (!telefoneConflitante) {
+                    cliente.setTelefone(telefone);
+                }
                 cliente.setTipoPessoa(normalizarTipoPessoa(c.tipoPessoaBruto));
                 if (c.email != null) {
                     cliente.setEmail(c.email);
