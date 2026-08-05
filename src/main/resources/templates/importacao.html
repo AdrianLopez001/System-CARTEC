@@ -13,6 +13,15 @@
         .resultado-box { margin-top: 12px; font-size: 0.85rem; padding: 8px 12px; border-radius: 4px; display: none; }
         .resultado-box.sucesso { background: #d1fae5; color: #065f46; display: block; }
         .resultado-box.erro { background: #fee2e2; color: #991b1b; display: block; }
+        .dropzone { border: 2px dashed var(--brand); border-radius: 10px; padding: 32px 20px; text-align: center; background: color-mix(in srgb, var(--brand) 5%, var(--surface-1)); transition: background 0.15s, border-color 0.15s; cursor: pointer; }
+        .dropzone.arrastando { background: color-mix(in srgb, var(--brand) 12%, var(--surface-1)); border-color: var(--brand-hover); }
+        .dropzone input[type="file"] { display: none; }
+        .lista-resultados-auto { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+        .item-resultado-auto { border-radius: 6px; padding: 10px 14px; font-size: 0.85rem; display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+        .item-resultado-auto.sucesso { background: #d1fae5; color: #065f46; }
+        .item-resultado-auto.erro { background: #fee2e2; color: #991b1b; }
+        .item-resultado-auto .nome-arquivo { font-weight: 600; }
+        .item-resultado-auto .detalhe { text-align: right; }
     </style>
 </head>
 <body>
@@ -26,6 +35,25 @@
 </div>
 
 <main>
+    <section class="card" style="margin-bottom:20px;">
+        <h2 style="margin-top:0;">🚀 Envio automático (recomendado)</h2>
+        <p class="descricao">
+            Arraste quantos relatórios de faturamento quiser pra cá de uma vez — Conferência de OS, Itens da
+            Conferência de OS, Vendas por Produto ou Vendas por Mês, em PDF ou XLS/XLSX. O sistema identifica
+            o tipo de cada arquivo sozinho, não precisa escolher o card certo abaixo.
+        </p>
+        <div id="dropzoneAuto" class="dropzone">
+            <label for="filesAuto" style="cursor:pointer; display:block;">
+                <span style="font-size:2.2rem; display:block; margin-bottom:8px;">📥</span>
+                <strong>Arraste os arquivos aqui ou clique pra escolher</strong>
+                <div class="descricao" style="margin-top:6px;">Pode selecionar vários de uma vez (.pdf, .xls, .xlsx)</div>
+            </label>
+            <input type="file" id="filesAuto" accept=".pdf,.xls,.xlsx" multiple>
+        </div>
+        <div id="resultadosAuto" class="lista-resultados-auto"></div>
+    </section>
+
+    <p class="descricao" style="margin-bottom:8px;">Prefere escolher o tipo manualmente? Use os cards abaixo.</p>
     <div class="grid-importacao">
 
         <!-- CARD 1: CLIENTES -->
@@ -181,6 +209,81 @@
 
 <script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
 <script>
+    const dropzoneAuto = document.getElementById('dropzoneAuto');
+    const filesAutoInput = document.getElementById('filesAuto');
+    const resultadosAuto = document.getElementById('resultadosAuto');
+
+    ['dragenter', 'dragover'].forEach(evento => {
+        dropzoneAuto.addEventListener(evento, (e) => {
+            e.preventDefault();
+            dropzoneAuto.classList.add('arrastando');
+        });
+    });
+    ['dragleave', 'drop'].forEach(evento => {
+        dropzoneAuto.addEventListener(evento, (e) => {
+            e.preventDefault();
+            dropzoneAuto.classList.remove('arrastando');
+        });
+    });
+    dropzoneAuto.addEventListener('drop', (e) => {
+        if (e.dataTransfer.files.length) {
+            enviarArquivosAutomatico(e.dataTransfer.files);
+        }
+    });
+    filesAutoInput.addEventListener('change', () => {
+        if (filesAutoInput.files.length) {
+            enviarArquivosAutomatico(filesAutoInput.files);
+            filesAutoInput.value = '';
+        }
+    });
+
+    async function enviarArquivosAutomatico(arquivos) {
+        const formData = new FormData();
+        for (const arquivo of arquivos) {
+            formData.append('arquivos', arquivo);
+        }
+
+        resultadosAuto.innerHTML = '';
+        const linhaProcessando = document.createElement('div');
+        linhaProcessando.className = 'item-resultado-auto';
+        linhaProcessando.textContent = `Processando ${arquivos.length} arquivo(s)...`;
+        resultadosAuto.appendChild(linhaProcessando);
+
+        try {
+            const resposta = await fetch('/api/ingestao/automatico', { method: 'POST', body: formData });
+            const dados = await resposta.json();
+            resultadosAuto.innerHTML = '';
+
+            if (!resposta.ok) {
+                const linha = document.createElement('div');
+                linha.className = 'item-resultado-auto erro';
+                linha.textContent = 'Erro ao enviar: ' + (dados.message || resposta.status);
+                resultadosAuto.appendChild(linha);
+                return;
+            }
+
+            dados.forEach(r => {
+                const linha = document.createElement('div');
+                linha.className = 'item-resultado-auto ' + (r.sucesso ? 'sucesso' : 'erro');
+                const nome = document.createElement('span');
+                nome.className = 'nome-arquivo';
+                nome.textContent = (r.sucesso ? '✅ ' : '⚠️ ') + r.nomeArquivo + (r.tipoDetectado ? ' — ' + r.tipoDetectado : '');
+                const detalhe = document.createElement('span');
+                detalhe.className = 'detalhe';
+                detalhe.textContent = r.mensagem;
+                linha.appendChild(nome);
+                linha.appendChild(detalhe);
+                resultadosAuto.appendChild(linha);
+            });
+        } catch (err) {
+            resultadosAuto.innerHTML = '';
+            const linha = document.createElement('div');
+            linha.className = 'item-resultado-auto erro';
+            linha.textContent = 'Erro de rede: ' + err.message;
+            resultadosAuto.appendChild(linha);
+        }
+    }
+
     async function enviarArquivo(url, fileInputId, resBoxId) {
         const fileInput = document.getElementById(fileInputId);
         const resBox = document.getElementById(resBoxId);

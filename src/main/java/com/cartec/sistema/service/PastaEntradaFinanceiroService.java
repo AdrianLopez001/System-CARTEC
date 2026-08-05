@@ -1,16 +1,11 @@
 package com.cartec.sistema.service;
 
-import com.cartec.sistema.dto.ResultadoImportacao;
-import com.cartec.sistema.util.ByteArrayMultipartFile;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -20,18 +15,15 @@ import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
 import java.util.stream.Stream;
 
 /**
- * Monitor da pasta de entrada financeira: Adrian solta o arquivo exportado
- * do Oficina Inteligente numa pasta so (nao precisa escolher o tipo), e a
- * cada ciclo o sistema tenta identificar o relatorio (ver
- * ClassificadorRelatorioFinanceiro), importa reaproveitando o IngestaoService
- * que ja existe (mesmos parsers usados em /importacao e /faturamento-diario)
- * e dispara a analise por IA (AgenteFinanceiroIaService) pro mes corrente.
+ * Monitor da pasta de entrada financeira: solte o arquivo exportado do
+ * Oficina Inteligente nessa pasta (nao precisa escolher o tipo), e a cada
+ * ciclo o sistema tenta identificar e importar (ver ImportadorAutomaticoService,
+ * mesma logica usada pelo upload manual multi-arquivo em /importacao) e
+ * dispara a analise por IA pro mes corrente se algo foi gravado.
  * <p>
  * A projecao/metricas do Agente Financeiro nao precisam de nenhum "passo de
  * atualizacao" separado - AgenteFinanceiroService.gerarAnalise() sempre
@@ -45,20 +37,14 @@ public class PastaEntradaFinanceiroService {
     private static final DateTimeFormatter CARIMBO = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
     private static final Duration IDADE_MINIMA_ANTES_DE_LER = Duration.ofSeconds(5);
 
-    private final IngestaoService ingestaoService;
-    private final AgenteFinanceiroService agenteFinanceiroService;
-    private final AgenteFinanceiroIaService agenteFinanceiroIaService;
+    private final ImportadorAutomaticoService importadorAutomaticoService;
     private final Path pastaEntrada;
     private final Path pastaProcessados;
     private final Path pastaErro;
 
-    public PastaEntradaFinanceiroService(IngestaoService ingestaoService,
-                                          AgenteFinanceiroService agenteFinanceiroService,
-                                          AgenteFinanceiroIaService agenteFinanceiroIaService,
+    public PastaEntradaFinanceiroService(ImportadorAutomaticoService importadorAutomaticoService,
                                           @Value("${agente-financeiro.pasta-entrada:data/entrada-financeiro}") String pastaEntradaConfigurada) {
-        this.ingestaoService = ingestaoService;
-        this.agenteFinanceiroService = agenteFinanceiroService;
-        this.agenteFinanceiroIaService = agenteFinanceiroIaService;
+        this.importadorAutomaticoService = importadorAutomaticoService;
         this.pastaEntrada = Paths.get(pastaEntradaConfigurada);
         this.pastaProcessados = this.pastaEntrada.resolve("processados");
         this.pastaErro = this.pastaEntrada.resolve("erro");
@@ -79,12 +65,18 @@ public class PastaEntradaFinanceiroService {
         if (!Files.isDirectory(pastaEntrada)) {
             return;
         }
+        boolean algumSucesso = false;
         try (Stream<Path> arquivos = Files.list(pastaEntrada)) {
-            arquivos.filter(Files::isRegularFile)
-                    .filter(this::maduroOSuficienteParaLer)
-                    .forEach(this::processarArquivo);
+            for (Path arquivo : arquivos.filter(Files::isRegularFile).filter(this::maduroOSuficienteParaLer).toList()) {
+                if (processarArquivo(arquivo)) {
+                    algumSucesso = true;
+                }
+            }
         } catch (IOException e) {
             log.error("Erro ao varrer a pasta de entrada financeira {}: {}", pastaEntrada, e.getMessage());
+        }
+        if (algumSucesso) {
+            importadorAutomaticoService.gerarAnaliseIaSeConfigurada();
         }
     }
 
@@ -97,95 +89,26 @@ public class PastaEntradaFinanceiroService {
         }
     }
 
-    private void processarArquivo(Path arquivo) {
+    private boolean processarArquivo(Path arquivo) {
         String nome = arquivo.getFileName().toString();
-        String nomeMin = nome.toLowerCase(Locale.ROOT);
+        byte[] bytes;
         try {
-            byte[] bytes = Files.readAllBytes(arquivo);
-            ResultadoImportacao resultado;
-            String tipoDetectado;
-
-            if (nomeMin.endsWith(".pdf")) {
-                var par = processarPdf(nome, bytes);
-                tipoDetectado = par.tipo();
-                resultado = par.resultado();
-            } else if (nomeMin.endsWith(".xls") || nomeMin.endsWith(".xlsx")) {
-                var par = processarXlsx(nome, bytes);
-                tipoDetectado = par.tipo();
-                resultado = par.resultado();
-            } else {
-                moverParaErro(arquivo, "Extensao nao reconhecida - esperado .pdf, .xls ou .xlsx");
-                return;
-            }
-
-            if (resultado == null) {
-                moverParaErro(arquivo, "Nao foi possivel identificar o tipo de relatorio (cabecalho fora do formato esperado dos relatorios conhecidos)");
-                return;
-            }
-
-            if (resultado.getTotalGravado() == 0) {
-                moverParaErro(arquivo, "Reconhecido como \"" + tipoDetectado + "\" mas nada foi gravado. Divergencias:\n"
-                        + String.join("\n", resultado.getDivergencias()));
-                return;
-            }
-
-            moverParaProcessados(arquivo);
-            log.info("Importado {} ({}): {} de {} linhas gravadas", nome, tipoDetectado,
-                    resultado.getTotalGravado(), resultado.getTotalLinhasLidas());
-
-            gerarAnaliseIaSemDerrubarProcessamento();
-        } catch (Exception e) {
-            log.error("Erro ao processar {} da pasta de entrada financeira", nome, e);
-            moverParaErro(arquivo, "Erro inesperado: " + e.getMessage());
-        }
-    }
-
-    private record ResultadoTipado(String tipo, ResultadoImportacao resultado) {
-    }
-
-    private ResultadoTipado processarPdf(String nome, byte[] bytes) throws IOException {
-        String texto = extrairTextoPdf(bytes);
-        ClassificadorRelatorioFinanceiro.Tipo tipo = ClassificadorRelatorioFinanceiro.classificarPdf(texto);
-        var arquivo = new ByteArrayMultipartFile(nome, "application/pdf", bytes);
-        return switch (tipo) {
-            case CONFERENCIA_OS_PDF -> new ResultadoTipado("Conferencia de OS", ingestaoService.importarConferenciaOsPdf(arquivo));
-            case VENDAS_POR_MES_PDF -> new ResultadoTipado("Vendas por Mes", ingestaoService.importarVendasPorMesPdf(arquivo));
-            default -> new ResultadoTipado(null, null);
-        };
-    }
-
-    private ResultadoTipado processarXlsx(String nome, byte[] bytes) throws IOException {
-        ClassificadorRelatorioFinanceiro.Tipo tipo;
-        try (Workbook workbook = WorkbookFactory.create(new ByteArrayInputStream(bytes))) {
-            tipo = ClassificadorRelatorioFinanceiro.classificarXlsx(workbook.getSheetAt(0));
+            bytes = Files.readAllBytes(arquivo);
+        } catch (IOException e) {
+            log.error("Erro ao ler {} da pasta de entrada financeira", nome, e);
+            moverParaErro(arquivo, "Erro ao ler o arquivo: " + e.getMessage());
+            return false;
         }
 
-        var arquivo = new ByteArrayMultipartFile(nome, "application/vnd.ms-excel", bytes);
-        return switch (tipo) {
-            case CONFERENCIA_OS_XLSX -> new ResultadoTipado("Conferencia de OS", ingestaoService.importarConferenciaOsXlsx(arquivo));
-            case CONFERENCIA_OS_ITEM_XLSX -> new ResultadoTipado("Itens da Conferencia de OS", ingestaoService.importarConferenciaOsItemXls(arquivo));
-            case VENDAS_POR_PRODUTO_XLSX -> new ResultadoTipado("Vendas por Produto", ingestaoService.importarVendasPorProdutoXls(arquivo));
-            default -> new ResultadoTipado(null, null);
-        };
-    }
+        ImportadorAutomaticoService.Resultado resultado = importadorAutomaticoService.processar(nome, bytes);
+        if (!resultado.sucesso()) {
+            moverParaErro(arquivo, resultado.mensagem());
+            return false;
+        }
 
-    private String extrairTextoPdf(byte[] bytes) throws IOException {
-        try (var documento = org.apache.pdfbox.Loader.loadPDF(bytes)) {
-            return new org.apache.pdfbox.text.PDFTextStripper().getText(documento);
-        }
-    }
-
-    private void gerarAnaliseIaSemDerrubarProcessamento() {
-        if (!agenteFinanceiroIaService.configurada()) {
-            return;
-        }
-        try {
-            YearMonth mesAtual = YearMonth.now();
-            AgenteFinanceiroService.Analise analise = agenteFinanceiroService.gerarAnalise(mesAtual);
-            agenteFinanceiroIaService.gerarRecomendacao(mesAtual, analise);
-        } catch (Exception e) {
-            log.warn("Nao foi possivel gerar a analise por IA apos importacao automatica: {}", e.getMessage());
-        }
+        moverParaProcessados(arquivo);
+        log.info("Importado {} ({}): {}", nome, resultado.tipoDetectado(), resultado.mensagem());
+        return true;
     }
 
     private void moverParaProcessados(Path arquivo) {
