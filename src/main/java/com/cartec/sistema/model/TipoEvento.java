@@ -1,14 +1,12 @@
 package com.cartec.sistema.model;
 
 /**
- * Tipo de item mostrado no calendario (ver CalendarioService - agrega
- * Evento com Tarefa e Campanha, cada um vira um "item" nesse tipo).
+ * Tipo do Evento (agendamento real, lembrete manual, ou item de tarefa).
  */
 public enum TipoEvento {
     AGENDAMENTO("Agendamento"),
     LEMBRETE("Lembrete"),
-    TAREFA("Tarefa"),
-    CAMPANHA("Campanha");
+    TAREFA("Tarefa");
 
     private final String rotulo;
 

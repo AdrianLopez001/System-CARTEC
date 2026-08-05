@@ -16,7 +16,6 @@ public class ConfiguracaoService {
     private final EventoRepository eventoRepository;
     private final ItemServicoRepository itemServicoRepository;
     private final OrdemServicoRepository ordemServicoRepository;
-    private final CampanhaRepository campanhaRepository;
     private final MetricaSemanalRepository metricaSemanalRepository;
     private final MetaRepository metaRepository;
     private final VendaDiariaRepository vendaDiariaRepository;
@@ -30,7 +29,6 @@ public class ConfiguracaoService {
                                 EventoRepository eventoRepository,
                                 ItemServicoRepository itemServicoRepository,
                                 OrdemServicoRepository ordemServicoRepository,
-                                CampanhaRepository campanhaRepository,
                                 MetricaSemanalRepository metricaSemanalRepository,
                                 MetaRepository metaRepository,
                                 VendaDiariaRepository vendaDiariaRepository,
@@ -43,7 +41,6 @@ public class ConfiguracaoService {
         this.eventoRepository = eventoRepository;
         this.itemServicoRepository = itemServicoRepository;
         this.ordemServicoRepository = ordemServicoRepository;
-        this.campanhaRepository = campanhaRepository;
         this.metricaSemanalRepository = metricaSemanalRepository;
         this.metaRepository = metaRepository;
         this.vendaDiariaRepository = vendaDiariaRepository;
@@ -64,7 +61,6 @@ public class ConfiguracaoService {
         notaRepository.deleteAll();
         itemServicoRepository.deleteAll();
         ordemServicoRepository.deleteAll();
-        campanhaRepository.deleteAll();
         metricaSemanalRepository.deleteAll();
         metaRepository.deleteAll();
         vendaDiariaRepository.deleteAll();

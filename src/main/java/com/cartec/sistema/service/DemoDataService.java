@@ -26,7 +26,6 @@ public class DemoDataService {
     private final EventoRepository eventoRepository;
     private final MetricaSemanalRepository metricaSemanalRepository;
     private final MetaRepository metaRepository;
-    private final CampanhaRepository campanhaRepository;
     private final ConversaWhatsappRepository conversaWhatsappRepository;
     private final ConfiguracaoSistemaRepository configuracaoRepository;
 
@@ -39,7 +38,6 @@ public class DemoDataService {
                             EventoRepository eventoRepository,
                             MetricaSemanalRepository metricaSemanalRepository,
                             MetaRepository metaRepository,
-                            CampanhaRepository campanhaRepository,
                             ConversaWhatsappRepository conversaWhatsappRepository,
                             ConfiguracaoSistemaRepository configuracaoRepository) {
         this.empresaRepository = empresaRepository;
@@ -51,7 +49,6 @@ public class DemoDataService {
         this.eventoRepository = eventoRepository;
         this.metricaSemanalRepository = metricaSemanalRepository;
         this.metaRepository = metaRepository;
-        this.campanhaRepository = campanhaRepository;
         this.conversaWhatsappRepository = conversaWhatsappRepository;
         this.configuracaoRepository = configuracaoRepository;
     }
@@ -103,13 +100,6 @@ public class DemoDataService {
         criarMetaSeNaoExistir("TICKET_MEDIO", hoje.withDayOfMonth(1), new BigDecimal("200.00"));
         criarMetaSeNaoExistir(ProjecaoMensalService.INDICADOR_FATURAMENTO_MENSAL, hoje.withDayOfMonth(1), new BigDecimal("35000.00"));
 
-        Campanha campanhaDemo = new Campanha();
-        campanhaDemo.setTagAlvo("Varejo");
-        campanhaDemo.setMensagemTemplate("Oi {nome}, tudo bem? Faz um tempinho que você não vem aqui na Cartec — que tal agendar uma revisão?");
-        campanhaDemo.setQuantidadeClientes(4);
-        campanhaDemo.setDemo(true);
-        campanhaRepository.save(campanhaDemo);
-
         salvarFlag(true);
     }
 
@@ -141,8 +131,7 @@ public class DemoDataService {
         // 3. Deletar Ordens de Servico demo
         ordemServicoRepository.deleteAll(osDemo);
 
-        // 4. Deletar Campanhas, Metricas e Metas demo
-        campanhaRepository.deleteAll(campanhaRepository.findByDemoTrue());
+        // 4. Deletar Metricas e Metas demo
         metricaSemanalRepository.deleteAll(metricaSemanalRepository.findByDemoTrue());
         metaRepository.deleteAll(metaRepository.findByDemoTrue());
 

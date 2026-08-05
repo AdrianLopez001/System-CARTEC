@@ -6,10 +6,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * Item de calendario: agendamento (importado da Agenda da Oficina
- * Inteligente ou criado manualmente), lembrete livre, etc. Tarefa e
- * Campanha ja sao entidades proprias e tambem aparecem no calendario
- * (ver CalendarioService), sem precisar duplicar aqui.
+ * Item de agenda: agendamento (importado da Agenda da Oficina
+ * Inteligente ou criado manualmente), lembrete livre, etc.
  */
 @Entity
 @Table(name = "evento")

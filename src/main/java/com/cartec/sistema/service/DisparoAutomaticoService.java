@@ -39,10 +39,10 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Disparo automatico de WhatsApp — SOMENTE para PF sem historico de compra
- * (SegmentoCliente.SEM_HISTORICO); PF com historico (tem gancho) e todo PJ
- * ficam de fora por decisao (ver CLAUDE.md, 04/08/2026) e seguem manuais via
- * /reengajamento e /campanhas.
+ * Disparo automatico de WhatsApp — audiencia por padrao e PF sem historico
+ * de compra (SegmentoCliente.SEM_HISTORICO, ver listarAlvoAtual/criar), mas
+ * tambem aceita uma lista colada em texto (criarDeTexto) ou uma planilha
+ * (criarDeXls) pra qualquer outro publico, ex. reengajamento manual.
  * <p>
  * Throttling deliberado: 1 envio por item PENDENTE a cada tick do scheduler,
  * com jitter (chance de pular o tick) e teto diario por disparo — o Baileys
