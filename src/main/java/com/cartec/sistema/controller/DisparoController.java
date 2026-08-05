@@ -44,7 +44,9 @@ public class DisparoController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "mensagemTemplate e obrigatorio");
         }
         int limite = corpo.get("limiteDiario") != null ? ((Number) corpo.get("limiteDiario")).intValue() : 40;
-        return service.criar(nome, mensagem, limite);
+        int intervaloMin = corpo.get("intervaloMinSegundos") != null ? ((Number) corpo.get("intervaloMinSegundos")).intValue() : 60;
+        int intervaloMax = corpo.get("intervaloMaxSegundos") != null ? ((Number) corpo.get("intervaloMaxSegundos")).intValue() : 180;
+        return service.criar(nome, mensagem, limite, intervaloMin, intervaloMax);
     }
 
     @PostMapping("/lista-texto")
@@ -56,8 +58,10 @@ public class DisparoController {
         }
         String numeros = (String) corpo.get("numeros");
         int limite = corpo.get("limiteDiario") != null ? ((Number) corpo.get("limiteDiario")).intValue() : 40;
+        int intervaloMin = corpo.get("intervaloMinSegundos") != null ? ((Number) corpo.get("intervaloMinSegundos")).intValue() : 60;
+        int intervaloMax = corpo.get("intervaloMaxSegundos") != null ? ((Number) corpo.get("intervaloMaxSegundos")).intValue() : 180;
         try {
-            return service.criarDeTexto(nome, mensagem, limite, numeros);
+            return service.criarDeTexto(nome, mensagem, limite, intervaloMin, intervaloMax, numeros);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
@@ -67,12 +71,14 @@ public class DisparoController {
     public Disparo criarDeXls(@RequestParam("arquivo") MultipartFile arquivo,
                                @RequestParam(defaultValue = "Disparo — planilha") String nome,
                                @RequestParam String mensagemTemplate,
-                               @RequestParam(defaultValue = "40") int limiteDiario) {
+                               @RequestParam(defaultValue = "40") int limiteDiario,
+                               @RequestParam(defaultValue = "60") int intervaloMinSegundos,
+                               @RequestParam(defaultValue = "180") int intervaloMaxSegundos) {
         if (mensagemTemplate == null || mensagemTemplate.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "mensagemTemplate e obrigatorio");
         }
         try {
-            return service.criarDeXls(nome, mensagemTemplate, limiteDiario, arquivo);
+            return service.criarDeXls(nome, mensagemTemplate, limiteDiario, intervaloMinSegundos, intervaloMaxSegundos, arquivo);
         } catch (IllegalArgumentException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (IOException e) {

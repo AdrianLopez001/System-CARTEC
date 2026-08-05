@@ -22,7 +22,7 @@ public class Disparo {
     @Column(name = "nome", nullable = false)
     private String nome;
 
-    @Column(name = "mensagem_template", length = 2000, nullable = false)
+    @Column(name = "mensagem_template", length = 4000, nullable = false)
     private String mensagemTemplate;
 
     @Enumerated(EnumType.STRING)
@@ -31,6 +31,18 @@ public class Disparo {
 
     @Column(name = "limite_diario", nullable = false)
     private int limiteDiario = 40;
+
+    @Column(name = "intervalo_min_segundos", nullable = false)
+    private int intervaloMinSegundos = 60;
+
+    @Column(name = "intervalo_max_segundos", nullable = false)
+    private int intervaloMaxSegundos = 180;
+
+    @Column(name = "ultimo_envio_em")
+    private LocalDateTime ultimoEnvioEm;
+
+    @Column(name = "proximo_intervalo_segundos")
+    private Integer proximoIntervaloSegundos;
 
     @Column(name = "criado_em", nullable = false)
     private LocalDateTime criadoEm;
@@ -98,6 +110,38 @@ public class Disparo {
 
     public void setLimiteDiario(int limiteDiario) {
         this.limiteDiario = limiteDiario;
+    }
+
+    public int getIntervaloMinSegundos() {
+        return intervaloMinSegundos;
+    }
+
+    public void setIntervaloMinSegundos(int intervaloMinSegundos) {
+        this.intervaloMinSegundos = intervaloMinSegundos;
+    }
+
+    public int getIntervaloMaxSegundos() {
+        return intervaloMaxSegundos;
+    }
+
+    public void setIntervaloMaxSegundos(int intervaloMaxSegundos) {
+        this.intervaloMaxSegundos = intervaloMaxSegundos;
+    }
+
+    public LocalDateTime getUltimoEnvioEm() {
+        return ultimoEnvioEm;
+    }
+
+    public void setUltimoEnvioEm(LocalDateTime ultimoEnvioEm) {
+        this.ultimoEnvioEm = ultimoEnvioEm;
+    }
+
+    public Integer getProximoIntervaloSegundos() {
+        return proximoIntervaloSegundos;
+    }
+
+    public void setProximoIntervaloSegundos(Integer proximoIntervaloSegundos) {
+        this.proximoIntervaloSegundos = proximoIntervaloSegundos;
     }
 
     public LocalDateTime getCriadoEm() {

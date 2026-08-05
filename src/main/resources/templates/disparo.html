@@ -126,11 +126,31 @@
             </div>
 
             <label for="mensagemTemplate">Mensagem (use <code>{nome}</code> para o primeiro nome)</label>
-            <textarea id="mensagemTemplate" placeholder="Olá {nome}! Aqui é da Cartec Bosch Service, em Natal/RN. Vimos seu cadastro por aqui e queríamos te conhecer melhor — topa agendar uma avaliação gratuita do seu carro? Se preferir não receber mais mensagens, responda SAIR."></textarea>
-            <div class="dica">Responder "SAIR" cancela automaticamente o envio para esse contato (opt-out).</div>
+            <textarea id="mensagemTemplate" style="min-height:130px;" placeholder="Olá {nome}! Aqui é da Cartec Bosch Service, em Natal/RN. Vimos seu cadastro por aqui e queríamos te conhecer melhor — topa agendar uma avaliação gratuita do seu carro? Se preferir não receber mais mensagens, responda SAIR.
 
-            <label for="limiteDiario" style="margin-top:10px;">Limite de envios por dia</label>
-            <input type="number" id="limiteDiario" value="40" min="1" max="300" style="max-width:140px;">
+---
+
+Oi {nome}, tudo bem? Aqui é da Cartec Bosch Service (Natal/RN). Notamos seu cadastro e gostaríamos de te apresentar uma avaliação gratuita pro seu carro. Topa? Pra sair da lista, responda SAIR."></textarea>
+            <div class="dica">
+                Responder "SAIR" cancela automaticamente o envio para esse contato (opt-out).
+                Pra alternar entre variações do texto (recomendado, reduz chance de bloqueio), separe cada versão com uma linha só com <code>---</code> — o sistema sorteia uma a cada envio.
+            </div>
+
+            <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:10px;">
+                <div>
+                    <label for="limiteDiario">Limite de envios por dia</label>
+                    <input type="number" id="limiteDiario" value="40" min="1" max="300" style="max-width:140px;">
+                </div>
+                <div>
+                    <label for="intervaloMin">Intervalo mínimo entre envios (segundos)</label>
+                    <input type="number" id="intervaloMin" value="60" min="15" max="3600" style="max-width:140px;">
+                </div>
+                <div>
+                    <label for="intervaloMax">Intervalo máximo entre envios (segundos)</label>
+                    <input type="number" id="intervaloMax" value="180" min="15" max="3600" style="max-width:140px;">
+                </div>
+            </div>
+            <div class="dica">Cada envio espera um tempo aleatório dentro dessa faixa antes do próximo — simula alguém digitando aos poucos, em vez de rajada.</div>
 
             <div style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
                 <button type="button" class="botao" id="btnCriar" onclick="criarDisparo()">Validar mensagem e criar disparo</button>
@@ -253,11 +273,16 @@
     async function criarDisparo() {
         const mensagem = document.getElementById('mensagemTemplate').value.trim();
         const limiteDiario = parseInt(document.getElementById('limiteDiario').value, 10) || 40;
+        let intervaloMinSegundos = parseInt(document.getElementById('intervaloMin').value, 10) || 60;
+        let intervaloMaxSegundos = parseInt(document.getElementById('intervaloMax').value, 10) || 180;
         const erroBox = document.getElementById('mensagemErro');
         erroBox.textContent = '';
         if (!mensagem) {
             erroBox.textContent = 'Escreva a mensagem antes de validar.';
             return;
+        }
+        if (intervaloMaxSegundos < intervaloMinSegundos) {
+            intervaloMaxSegundos = intervaloMinSegundos;
         }
 
         try {
@@ -268,7 +293,7 @@
                 res = await fetch('/api/disparos/lista-texto', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nome: 'Disparo — lista colada', mensagemTemplate: mensagem, limiteDiario, numeros })
+                    body: JSON.stringify({ nome: 'Disparo — lista colada', mensagemTemplate: mensagem, limiteDiario, intervaloMinSegundos, intervaloMaxSegundos, numeros })
                 });
             } else if (fonteAtiva === 'xls') {
                 const arquivo = document.getElementById('fileDisparoXls').files[0];
@@ -278,12 +303,14 @@
                 formData.append('nome', 'Disparo — planilha');
                 formData.append('mensagemTemplate', mensagem);
                 formData.append('limiteDiario', limiteDiario);
+                formData.append('intervaloMinSegundos', intervaloMinSegundos);
+                formData.append('intervaloMaxSegundos', intervaloMaxSegundos);
                 res = await fetch('/api/disparos/lista-xls', { method: 'POST', body: formData });
             } else {
                 res = await fetch('/api/disparos', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nome: 'Disparo PF sem histórico', mensagemTemplate: mensagem, limiteDiario })
+                    body: JSON.stringify({ nome: 'Disparo PF sem histórico', mensagemTemplate: mensagem, limiteDiario, intervaloMinSegundos, intervaloMaxSegundos })
                 });
             }
             if (!res.ok) throw new Error((await res.json()).message || 'Erro ao criar disparo');

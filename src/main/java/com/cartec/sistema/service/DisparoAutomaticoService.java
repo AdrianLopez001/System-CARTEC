@@ -95,11 +95,11 @@ public class DisparoAutomaticoService {
         return tipo != null && tipo.trim().toUpperCase(Locale.ROOT).startsWith("F");
     }
 
-    public Disparo criar(String nome, String mensagemTemplate, int limiteDiario) {
+    public Disparo criar(String nome, String mensagemTemplate, int limiteDiario, int intervaloMinSegundos, int intervaloMaxSegundos) {
         List<Destinatario> destinatarios = listarAlvoAtual().stream()
                 .map(c -> new Destinatario(c.getId(), c.getNome(), PhoneUtils.padronizar(c.getTelefone())))
                 .toList();
-        return criarComDestinatarios(nome, mensagemTemplate, limiteDiario, destinatarios);
+        return criarComDestinatarios(nome, mensagemTemplate, limiteDiario, intervaloMinSegundos, intervaloMaxSegundos, destinatarios);
     }
 
     private static final java.util.regex.Pattern PADRAO_TELEFONE_NA_LINHA =
@@ -116,7 +116,7 @@ public class DisparoAutomaticoService {
      * telefone como ultimo recurso - pedido explicito pra nao usar o numero
      * como nome quando o contato nao tem cadastro mas a pessoa digitou nome.
      */
-    public Disparo criarDeTexto(String nome, String mensagemTemplate, int limiteDiario, String numerosColados) {
+    public Disparo criarDeTexto(String nome, String mensagemTemplate, int limiteDiario, int intervaloMinSegundos, int intervaloMaxSegundos, String numerosColados) {
         if (numerosColados == null || numerosColados.isBlank()) {
             throw new IllegalArgumentException("Cole ao menos um numero de telefone.");
         }
@@ -149,11 +149,11 @@ public class DisparoAutomaticoService {
         if (destinatarios.isEmpty()) {
             throw new IllegalArgumentException("Nenhum numero valido encontrado no texto colado.");
         }
-        return criarComDestinatarios(nome, mensagemTemplate, limiteDiario, destinatarios);
+        return criarComDestinatarios(nome, mensagemTemplate, limiteDiario, intervaloMinSegundos, intervaloMaxSegundos, destinatarios);
     }
 
     /** Fonte alternativa de audiencia: planilha (modelo baixavel em /api/disparos/modelo-xls). */
-    public Disparo criarDeXls(String nome, String mensagemTemplate, int limiteDiario, MultipartFile arquivo) throws IOException {
+    public Disparo criarDeXls(String nome, String mensagemTemplate, int limiteDiario, int intervaloMinSegundos, int intervaloMaxSegundos, MultipartFile arquivo) throws IOException {
         List<Destinatario> destinatarios = new ArrayList<>();
         Set<String> vistos = new LinkedHashSet<>();
         try (InputStream in = arquivo.getInputStream(); Workbook workbook = WorkbookFactory.create(in)) {
@@ -171,7 +171,7 @@ public class DisparoAutomaticoService {
         if (destinatarios.isEmpty()) {
             throw new IllegalArgumentException("Nenhum telefone valido encontrado na planilha - confira se a coluna \"Telefone\" existe e esta preenchida.");
         }
-        return criarComDestinatarios(nome, mensagemTemplate, limiteDiario, destinatarios);
+        return criarComDestinatarios(nome, mensagemTemplate, limiteDiario, intervaloMinSegundos, intervaloMaxSegundos, destinatarios);
     }
 
     /** Gera o xlsx-modelo (Nome, Telefone) pro usuario baixar, preencher e reenviar em criarDeXls. */
@@ -191,11 +191,18 @@ public class DisparoAutomaticoService {
         }
     }
 
-    private Disparo criarComDestinatarios(String nome, String mensagemTemplate, int limiteDiario, List<Destinatario> destinatarios) {
+    private Disparo criarComDestinatarios(String nome, String mensagemTemplate, int limiteDiario,
+                                           int intervaloMinSegundos, int intervaloMaxSegundos,
+                                           List<Destinatario> destinatarios) {
+        int min = Math.max(15, intervaloMinSegundos);
+        int max = Math.max(min, intervaloMaxSegundos);
+
         Disparo disparo = new Disparo();
         disparo.setNome(nome);
         disparo.setMensagemTemplate(mensagemTemplate);
         disparo.setLimiteDiario(Math.max(1, limiteDiario));
+        disparo.setIntervaloMinSegundos(min);
+        disparo.setIntervaloMaxSegundos(max);
         disparo.setTotalAlvo(destinatarios.size());
         disparo.setStatus(StatusDisparo.RASCUNHO);
         disparo = disparoRepository.save(disparo);
@@ -276,13 +283,15 @@ public class DisparoAutomaticoService {
     }
 
     /**
-     * Tick do disparo automatico — roda a cada 45s, mas so envia de fato
-     * com ~60% de chance (jitter) e so dentro da janela comercial, pra nao
-     * criar um padrao de disparo perfeitamente cronometrado.
+     * Tick do disparo automatico — roda a cada 20s, mas cada disparo so
+     * manda de fato quando ja passou o "proximo intervalo" sorteado
+     * (intervaloMinSegundos..intervaloMaxSegundos, sorteado de novo a cada
+     * envio) e dentro da janela comercial, pra parecer alguem digitando e
+     * mandando aos poucos, nao um robo cronometrado.
      */
-    @Scheduled(fixedDelay = 45_000)
+    @Scheduled(fixedDelay = 20_000)
     public void processarTick() {
-        if (!dentroDaJanelaComercial() || Math.random() > 0.6) {
+        if (!dentroDaJanelaComercial()) {
             return;
         }
         if (!"CONECTADO".equals(statusBotAtual())) {
@@ -294,6 +303,15 @@ public class DisparoAutomaticoService {
     }
 
     private void processarUmItem(Disparo disparo) {
+        if (disparo.getUltimoEnvioEm() != null) {
+            int aguardar = disparo.getProximoIntervaloSegundos() != null
+                    ? disparo.getProximoIntervaloSegundos() : disparo.getIntervaloMinSegundos();
+            long decorridos = java.time.Duration.between(disparo.getUltimoEnvioEm(), LocalDateTime.now()).toSeconds();
+            if (decorridos < aguardar) {
+                return;
+            }
+        }
+
         long enviadosHoje = disparoItemRepository.countByDisparoIdAndStatusAndDataEnvioGreaterThanEqual(
                 disparo.getId(), StatusItemDisparo.ENVIADO, LocalDate.now().atStartOfDay());
         if (enviadosHoje >= disparo.getLimiteDiario()) {
@@ -313,6 +331,11 @@ public class DisparoAutomaticoService {
 
         DisparoItem item = proximo.get();
         String mensagem = personalizarMensagem(disparo.getMensagemTemplate(), item.getNome());
+
+        // Sorteia ja o proximo intervalo, envie com sucesso ou nao - o alvo e
+        // espacar tentativas de envio, nao so envios bem-sucedidos.
+        disparo.setUltimoEnvioEm(LocalDateTime.now());
+        disparo.setProximoIntervaloSegundos(sortearIntervalo(disparo));
 
         try {
             Map<String, String> corpo = Map.of("telefone", item.getTelefone(), "texto", mensagem);
@@ -334,6 +357,12 @@ public class DisparoAutomaticoService {
         }
     }
 
+    private int sortearIntervalo(Disparo disparo) {
+        int min = disparo.getIntervaloMinSegundos();
+        int max = disparo.getIntervaloMaxSegundos();
+        return max > min ? min + (int) (Math.random() * (max - min)) : min;
+    }
+
     private void emitirProgresso(Disparo disparo, DisparoItem item, String evento) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("disparoId", disparo.getId());
@@ -350,10 +379,19 @@ public class DisparoAutomaticoService {
         sseService.emitir("disparo-progresso", payload);
     }
 
+    /**
+     * O campo mensagemTemplate pode conter varias variacoes separadas por
+     * uma linha só com "---" - sorteia uma a cada envio. Mandar o texto
+     * identico pra dezenas de numeros e um padrao forte de deteccao de spam;
+     * alternar entre 2-3 variacoes com o mesmo sentido reduz isso.
+     */
     private String personalizarMensagem(String template, String nomeCompleto) {
+        String[] variacoes = template.split("(?m)^\\s*-{3,}\\s*$");
+        String escolhida = variacoes[(int) (Math.random() * variacoes.length)].trim();
+
         String primeiroNome = (nomeCompleto == null || nomeCompleto.isBlank())
                 ? "" : nomeCompleto.trim().split("\\s+")[0];
-        return template.replace("{nome}", primeiroNome);
+        return escolhida.replace("{nome}", primeiroNome);
     }
 
     private boolean dentroDaJanelaComercial() {
