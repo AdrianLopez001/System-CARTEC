@@ -102,12 +102,19 @@ public class DisparoAutomaticoService {
         return criarComDestinatarios(nome, mensagemTemplate, limiteDiario, destinatarios);
     }
 
+    private static final java.util.regex.Pattern PADRAO_TELEFONE_NA_LINHA =
+            java.util.regex.Pattern.compile("\\(?\\+?\\d[\\d\\s().-]{6,}\\d\\)?");
+
     /**
-     * Fonte alternativa de audiencia: numeros colados em texto livre (um por
-     * linha, ou separados por virgula/ponto-e-virgula) - pro caso de quem
-     * quer disparar pra uma lista especifica em vez da base PF sem historico.
-     * Casa por telefone com Cliente existente pra herdar o nome (personaliza
-     * {nome} na mensagem); sem match, usa o proprio texto colado como nome.
+     * Fonte alternativa de audiencia: numeros colados em texto livre, um
+     * contato por linha - pro caso de quem quer disparar pra uma lista
+     * especifica em vez da base PF sem historico. Cada linha pode ser so o
+     * telefone, ou "Nome, Telefone" / "Nome - Telefone" / "Telefone Nome"
+     * (o telefone e localizado por regex em qualquer posicao da linha, o
+     * resto sobra como nome). Prioridade do nome exibido: nome digitado na
+     * linha > nome do Cliente cadastrado (casado por telefone) > o proprio
+     * telefone como ultimo recurso - pedido explicito pra nao usar o numero
+     * como nome quando o contato nao tem cadastro mas a pessoa digitou nome.
      */
     public Disparo criarDeTexto(String nome, String mensagemTemplate, int limiteDiario, String numerosColados) {
         if (numerosColados == null || numerosColados.isBlank()) {
@@ -115,20 +122,29 @@ public class DisparoAutomaticoService {
         }
         Set<String> vistos = new LinkedHashSet<>();
         List<Destinatario> destinatarios = new ArrayList<>();
-        for (String bruto : numerosColados.split("[\\r\\n,;]+")) {
-            String linha = bruto.trim();
+        for (String linhaBruta : numerosColados.split("[\\r\\n]+")) {
+            String linha = linhaBruta.trim();
             if (linha.isEmpty()) {
                 continue;
             }
-            String telefone = PhoneUtils.padronizar(linha);
+
+            java.util.regex.Matcher m = PADRAO_TELEFONE_NA_LINHA.matcher(linha);
+            if (!m.find()) {
+                continue;
+            }
+            String telefone = PhoneUtils.padronizar(m.group());
             if (!PhoneUtils.isValido(telefone) || !vistos.add(telefone)) {
                 continue;
             }
+
+            String nomeDigitado = (linha.substring(0, m.start()) + linha.substring(m.end()))
+                    .replaceAll("^[\\s,;()\\-–—:]+|[\\s,;()\\-–—:]+$", "")
+                    .trim();
+
             Optional<Cliente> cliente = clienteRepository.findByTelefone(telefone);
-            destinatarios.add(new Destinatario(
-                    cliente.map(Cliente::getId).orElse(null),
-                    cliente.map(Cliente::getNome).orElse(linha),
-                    telefone));
+            String nomeFinal = !nomeDigitado.isBlank() ? nomeDigitado
+                    : cliente.map(Cliente::getNome).orElse(telefone);
+            destinatarios.add(new Destinatario(cliente.map(Cliente::getId).orElse(null), nomeFinal, telefone));
         }
         if (destinatarios.isEmpty()) {
             throw new IllegalArgumentException("Nenhum numero valido encontrado no texto colado.");
