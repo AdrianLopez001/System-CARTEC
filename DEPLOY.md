@@ -74,6 +74,7 @@ nano .env
 Preencha com valores reais:
 - `APP_SECURITY_ADMIN_PASSWORD` — senha forte, **não** deixe `admin`.
 - `WHATSAPP_BOT_TOKEN` — gere um valor aleatório: `openssl rand -hex 24`
+- `ANTHROPIC_API_KEY` — opcional, chave da API do Claude (console.anthropic.com) pra ativar a análise por IA do Agente Financeiro. Sem ela a tela mostra "IA não configurada" e o resto do sistema segue normal.
 
 Salve (Ctrl+O, Enter, Ctrl+X no nano).
 
@@ -172,6 +173,12 @@ docker compose down
 
 # Backup manual do banco (H2 é um arquivo só)
 cp data/cartec.mv.db ~/backup-cartec-$(date +%Y%m%d).mv.db
+
+# Agente Financeiro automático: solte o relatório exportado (PDF/XLS/XLSX)
+# em data/entrada-financeiro/ (dentro da pasta do projeto no VPS) - o
+# sistema detecta o tipo, importa e (com ANTHROPIC_API_KEY configurada)
+# gera a análise por IA em até 1 minuto. Confira o resultado em
+# data/entrada-financeiro/processados/ ou /erro/ (o .txt ao lado explica o motivo).
 ```
 
 ## Verificação pós-deploy

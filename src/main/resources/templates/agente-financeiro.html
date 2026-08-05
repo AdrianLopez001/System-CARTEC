@@ -14,6 +14,8 @@
         .barra-ranking { height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; margin-top: 4px; }
         .barra-ranking-fill { height: 100%; background: var(--brand); }
         .barra-ranking-fill.pior { background: var(--muted); }
+        .analise-ia-texto { white-space: pre-wrap; font-size: 0.9rem; line-height: 1.6; }
+        .analise-ia-meta { font-size: 0.8rem; color: var(--text-secondary); margin-top: 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
     </style>
 </head>
 <body>
@@ -47,6 +49,29 @@
             <div class="value" th:if="${analise.projecao().valorMeta() != null and analise.projecao().valorMeta().signum() > 0}"
                  th:text="${#numbers.formatDecimal(analise.projecao().percentualMetaAtual(), 1, 'POINT', 1, 'COMMA') + '% → ' + #numbers.formatDecimal(analise.projecao().percentualMetaProjetado(), 1, 'POINT', 1, 'COMMA') + '%'}">0% → 0%</div>
             <div class="value dash" th:if="${analise.projecao().valorMeta() == null or analise.projecao().valorMeta().signum() <= 0}">sem meta</div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Análise da IA</h2>
+        <p class="descricao">Gerada pelo Claude a partir dos mesmos números desta tela — foco no que teve mais retorno e no que precisa de atenção. Atualiza sozinha quando um relatório novo é importado pela pasta de entrada.</p>
+
+        <div th:if="${!iaConfigurada}" class="vazio">
+            IA não configurada — defina a variável de ambiente <code>ANTHROPIC_API_KEY</code> no servidor pra ativar essa análise.
+        </div>
+
+        <div th:if="${iaConfigurada}">
+            <div id="analiseIaTexto" class="analise-ia-texto"
+                 th:if="${recomendacaoIa != null}" th:text="${recomendacaoIa.texto}"></div>
+            <p id="analiseIaVazia" class="vazio" th:if="${recomendacaoIa == null}">
+                Nenhuma análise gerada ainda pra esse mês — importe um relatório pela pasta de entrada ou clique em "Gerar agora".
+            </p>
+            <div class="analise-ia-meta">
+                <span id="analiseIaData" th:if="${recomendacaoIa != null}"
+                      th:text="${'Gerada em ' + #temporals.format(recomendacaoIa.geradoEm, 'dd/MM/yyyy HH:mm')}">Gerada em --/--/---- --:--</span>
+                <span id="analiseIaData" th:if="${recomendacaoIa == null}"></span>
+                <button id="btnGerarIa" class="secundario">Gerar agora</button>
+            </div>
         </div>
     </section>
 
@@ -145,6 +170,40 @@
 </main>
 
 <script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
+<script th:if="${iaConfigurada}">
+    const btnGerarIa = document.getElementById('btnGerarIa');
+    btnGerarIa.addEventListener('click', async () => {
+        btnGerarIa.disabled = true;
+        btnGerarIa.textContent = 'Gerando...';
+        try {
+            const resposta = await fetch('/api/agente-financeiro/gerar-ia', { method: 'POST' });
+            if (!resposta.ok) {
+                const erro = await resposta.text();
+                alert('Erro ao gerar análise: ' + erro);
+                return;
+            }
+            const dados = await resposta.json();
+
+            let textoEl = document.getElementById('analiseIaTexto');
+            if (!textoEl) {
+                textoEl = document.createElement('div');
+                textoEl.id = 'analiseIaTexto';
+                textoEl.className = 'analise-ia-texto';
+                document.getElementById('analiseIaVazia').replaceWith(textoEl);
+            }
+            textoEl.textContent = dados.texto;
+
+            const dataEl = document.getElementById('analiseIaData');
+            const geradoEm = new Date(dados.geradoEm);
+            dataEl.textContent = 'Gerada em ' + geradoEm.toLocaleDateString('pt-BR') + ' ' + geradoEm.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        } catch (e) {
+            alert('Erro ao gerar análise: ' + e.message);
+        } finally {
+            btnGerarIa.disabled = false;
+            btnGerarIa.textContent = 'Gerar agora';
+        }
+    });
+</script>
 <script th:inline="javascript" th:unless="${analise.semanas().isEmpty()}">
     const labelsSemanas = /*[[${analise.semanas().![#temporals.format(inicio, 'dd/MM')]}]]*/ [];
     const faturamentoSemanas = /*[[${analise.semanas().![faturamento]}]]*/ [];

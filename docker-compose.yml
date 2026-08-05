@@ -16,6 +16,7 @@ services:
       APP_SECURITY_ADMIN_PASSWORD: ${APP_SECURITY_ADMIN_PASSWORD}
       WHATSAPP_BOT_TOKEN: ${WHATSAPP_BOT_TOKEN}
       WHATSAPP_BOT_URL: http://whatsapp-bot:3001
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     restart: unless-stopped
     depends_on:
       - whatsapp-bot
