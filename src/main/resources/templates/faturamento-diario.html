@@ -76,6 +76,28 @@
         </p>
     </section>
 
+    <section class="card" th:unless="${projecao.valorPorDia().isEmpty()}">
+        <h2>Faturado por dia</h2>
+        <p class="descricao">O que foi faturado de fato em cada dia com OS registrada no mês (não é acumulado).</p>
+        <canvas id="graficoPorDia" height="80"></canvas>
+        <div class="tabela-scroll" style="margin-top:16px;">
+            <table>
+                <thead>
+                <tr>
+                    <th>Dia</th>
+                    <th>Faturado</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="entrada : ${projecao.valorPorDia()}">
+                    <td th:text="${#temporals.format(entrada.key, 'dd/MM/yyyy')}">01/01/2026</td>
+                    <td class="numero" th:text="${'R$ ' + #numbers.formatDecimal(entrada.value, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
     <section class="card" th:unless="${metricas.isEmpty()}">
         <h2>Ticket médio — histórico semanal</h2>
         <canvas id="graficoTicketMedio" height="90"></canvas>
@@ -131,7 +153,31 @@
 
     const diasGrafico = /*[[${diasGrafico}]]*/ [];
     const valoresGrafico = /*[[${valoresGrafico}]]*/ [];
+    const valoresPorDiaGrafico = /*[[${valoresPorDiaGrafico}]]*/ [];
     const valorMetaAtual = /*[[${projecao.valorMeta}]]*/ null;
+
+    if (diasGrafico.length) {
+        const rootDia = getComputedStyle(document.documentElement);
+        new Chart(document.getElementById('graficoPorDia'), {
+            type: 'bar',
+            data: {
+                labels: diasGrafico,
+                datasets: [{
+                    label: 'Faturado no dia',
+                    data: valoresPorDiaGrafico,
+                    backgroundColor: rootDia.getPropertyValue('--series-1').trim()
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: rootDia.getPropertyValue('--text-secondary').trim() } },
+                    y: { grid: { color: rootDia.getPropertyValue('--grid').trim() }, ticks: { color: rootDia.getPropertyValue('--text-secondary').trim() }, beginAtZero: true }
+                }
+            }
+        });
+    }
 
     if (diasGrafico.length) {
         const root = getComputedStyle(document.documentElement);

@@ -34,13 +34,16 @@ public class FaturamentoDiarioPageController {
 
         List<String> diasGrafico = new ArrayList<>();
         List<BigDecimal> valoresGrafico = new ArrayList<>();
+        List<BigDecimal> valoresPorDiaGrafico = new ArrayList<>();
         DateTimeFormatter formatoDia = DateTimeFormatter.ofPattern("dd/MM");
         projecao.acumuladoPorDia().forEach((data, valor) -> {
             diasGrafico.add(data.format(formatoDia));
             valoresGrafico.add(valor);
+            valoresPorDiaGrafico.add(projecao.valorPorDia().get(data));
         });
         model.addAttribute("diasGrafico", diasGrafico);
         model.addAttribute("valoresGrafico", valoresGrafico);
+        model.addAttribute("valoresPorDiaGrafico", valoresPorDiaGrafico);
 
         List<MetricaSemanal> metricas = metricaSemanalRepository.findAllByOrderBySemanaInicioAsc();
         model.addAttribute("metricas", metricas);

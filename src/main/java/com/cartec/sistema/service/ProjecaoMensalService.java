@@ -118,17 +118,20 @@ public class ProjecaoMensalService {
         BigDecimal percentualMetaProjetado = valorMeta != null ? metricaService.calcularPercentualMeta(projecaoFechamento, valorMeta) : null;
 
         TreeMap<LocalDate, BigDecimal> acumuladoPorDia = new TreeMap<>();
+        TreeMap<LocalDate, BigDecimal> valorPorDia = new TreeMap<>();
         BigDecimal acumulado = BigDecimal.ZERO;
         for (OrdemServico os : ordensDoMes.stream()
                 .sorted((a, b) -> dataDe(a).compareTo(dataDe(b)))
                 .toList()) {
-            acumulado = acumulado.add(os.getValorTotal() != null ? os.getValorTotal() : BigDecimal.ZERO);
+            BigDecimal valor = os.getValorTotal() != null ? os.getValorTotal() : BigDecimal.ZERO;
+            acumulado = acumulado.add(valor);
             acumuladoPorDia.put(dataDe(os), acumulado);
+            valorPorDia.merge(dataDe(os), valor, BigDecimal::add);
         }
 
         return new Projecao(mes, valorAtual, valorMeta, projecaoFechamento,
                 percentualMetaAtual, percentualMetaProjetado,
-                diasDecorridos, diasNoMes, diasRestantes, ordensDoMes.size(), acumuladoPorDia);
+                diasDecorridos, diasNoMes, diasRestantes, ordensDoMes.size(), acumuladoPorDia, valorPorDia);
     }
 
     private LocalDate dataDe(OrdemServico os) {
@@ -138,6 +141,7 @@ public class ProjecaoMensalService {
     public record Projecao(YearMonth mes, BigDecimal valorAtual, BigDecimal valorMeta, BigDecimal projecaoFechamento,
                             BigDecimal percentualMetaAtual, BigDecimal percentualMetaProjetado,
                             int diasDecorridos, int diasNoMes, int diasRestantes, int totalOs,
-                            TreeMap<LocalDate, BigDecimal> acumuladoPorDia) {
+                            TreeMap<LocalDate, BigDecimal> acumuladoPorDia,
+                            TreeMap<LocalDate, BigDecimal> valorPorDia) {
     }
 }

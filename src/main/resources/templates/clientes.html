@@ -53,6 +53,10 @@
                     <label for="tagPf">Tag</label>
                     <input type="text" id="tagPf" placeholder="Varejo, VIP, etc." oninput="filtrarPf()">
                 </div>
+                <div>
+                    <button type="button" class="botao" onclick="filtrarPf()">Filtrar</button>
+                    <button type="button" class="botao secundario" onclick="limparFiltrosPf()">Limpar</button>
+                </div>
             </div>
             <div class="tabela-scroll">
                 <table id="tabelaPf">
@@ -101,6 +105,10 @@
                     <label for="iePj">Inscrição Estadual</label>
                     <input type="text" id="iePj" placeholder="IE" oninput="filtrarPj()">
                 </div>
+                <div>
+                    <button type="button" class="botao" onclick="filtrarPj()">Filtrar</button>
+                    <button type="button" class="botao secundario" onclick="limparFiltrosPj()">Limpar</button>
+                </div>
             </div>
             <div class="tabela-scroll">
                 <table id="tabelaPj">
@@ -139,7 +147,7 @@
     <div id="tab-empresas" class="tab-conteudo">
         <section class="card">
             <h2>Nova Empresa / Conta Corporativa</h2>
-            <form id="formNovaEmpresa" style="display:grid; grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1.5fr auto; gap:12px; align-items:end;">
+            <form id="formNovaEmpresa" style="display:grid; grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1.5fr 1fr auto; gap:12px; align-items:end;">
                 <div>
                     <label for="empNome">Nome da Empresa</label>
                     <input type="text" id="empNome" required placeholder="Ex: Transportadora X">
@@ -161,6 +169,10 @@
                     <input type="email" id="empEmail" placeholder="contato@empresa.com">
                 </div>
                 <div>
+                    <label for="empTag">Tag</label>
+                    <input type="text" id="empTag" placeholder="VIP, Frotas...">
+                </div>
+                <div>
                     <button type="submit" class="botao">Cadastrar Empresa</button>
                 </div>
             </form>
@@ -168,9 +180,24 @@
         </section>
 
         <section class="card">
+            <h2>Filtrar Empresas</h2>
+            <div class="filtros">
+                <div>
+                    <label for="buscaEmpresa">Buscar Nome/CNPJ</label>
+                    <input type="text" id="buscaEmpresa" placeholder="Nome ou CNPJ" oninput="filtrarEmpresas()">
+                </div>
+                <div>
+                    <label for="tagEmpresa">Tag</label>
+                    <input type="text" id="tagEmpresa" placeholder="VIP, Frotas..." oninput="filtrarEmpresas()">
+                </div>
+                <div>
+                    <button type="button" class="botao" onclick="filtrarEmpresas()">Filtrar</button>
+                    <button type="button" class="botao secundario" onclick="limparFiltrosEmpresas()">Limpar</button>
+                </div>
+            </div>
             <h2>Contas Corporativas Cadastradas</h2>
             <div class="tabela-scroll">
-                <table>
+                <table id="tabelaEmpresas">
                     <thead>
                     <tr>
                         <th>Empresa</th>
@@ -178,16 +205,21 @@
                         <th>Segmento</th>
                         <th>Telefone</th>
                         <th>Email</th>
+                        <th>Tag</th>
                         <th>Contatos Vinculados</th>
                     </tr>
                     </thead>
                     <tbody>
-                    <tr th:each="e : ${empresas}">
+                    <tr th:each="e : ${empresas}"
+                        th:data-nome="${#strings.toLowerCase(e.nome)}"
+                        th:data-cnpj="${e.cnpj != null ? e.cnpj : ''}"
+                        th:data-tag="${e.tag != null ? #strings.toLowerCase(e.tag) : ''}">
                         <td th:text="${e.nome}" style="font-weight:600;">Nome</td>
                         <td th:text="${e.cnpj != null ? e.cnpj : '-'}">-</td>
                         <td th:text="${e.segmento != null ? e.segmento : 'Geral'}">-</td>
                         <td th:text="${e.telefone != null ? e.telefone : '-'}">-</td>
                         <td th:text="${e.email != null ? e.email : '-'}">-</td>
+                        <td><span class="badge" th:if="${e.tag != null}" th:text="${e.tag}">Tag</span><span th:if="${e.tag == null}">-</span></td>
                         <td>
                             <span class="badge" th:text="${e.contatos != null ? e.contatos.size() + ' contato(s)' : '0 contatos'}">0 contatos</span>
                         </td>
@@ -253,6 +285,41 @@
         });
     }
 
+    function limparFiltrosPf() {
+        document.getElementById('buscaPf').value = '';
+        document.getElementById('cidadePf').value = '';
+        document.getElementById('tagPf').value = '';
+        filtrarPf();
+    }
+
+    function limparFiltrosPj() {
+        document.getElementById('buscaPj').value = '';
+        document.getElementById('iePj').value = '';
+        filtrarPj();
+    }
+
+    function filtrarEmpresas() {
+        const busca = document.getElementById('buscaEmpresa').value.toLowerCase();
+        const tag = document.getElementById('tagEmpresa').value.toLowerCase();
+
+        document.querySelectorAll('#tabelaEmpresas tbody tr').forEach(row => {
+            const nome = row.dataset.nome || '';
+            const cnpj = row.dataset.cnpj || '';
+            const tg = row.dataset.tag || '';
+
+            const bateBusca = !busca || nome.includes(busca) || cnpj.includes(busca);
+            const bateTag = !tag || tg.includes(tag);
+
+            row.style.display = (bateBusca && bateTag) ? '' : 'none';
+        });
+    }
+
+    function limparFiltrosEmpresas() {
+        document.getElementById('buscaEmpresa').value = '';
+        document.getElementById('tagEmpresa').value = '';
+        filtrarEmpresas();
+    }
+
     document.getElementById('formNovaEmpresa').addEventListener('submit', async (e) => {
         e.preventDefault();
         const caixa = document.getElementById('resultadoEmpresa');
@@ -261,7 +328,8 @@
             cnpj: document.getElementById('empCnpj').value,
             segmento: document.getElementById('empSegmento').value,
             telefone: document.getElementById('empTelefone').value,
-            email: document.getElementById('empEmail').value
+            email: document.getElementById('empEmail').value,
+            tag: document.getElementById('empTag').value
         };
         try {
             const res = await fetch('/api/empresas', {

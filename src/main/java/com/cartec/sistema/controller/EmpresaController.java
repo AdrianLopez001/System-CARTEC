@@ -45,6 +45,7 @@ public class EmpresaController {
         empresa.setSegmento(dados.getSegmento());
         empresa.setTelefone(dados.getTelefone());
         empresa.setEmail(dados.getEmail());
+        empresa.setTag(dados.getTag());
         empresa.setObservacoes(dados.getObservacoes());
         return empresaRepository.save(empresa);
     }

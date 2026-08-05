@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Cartec — Agente Financeiro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <style th:replace="~{fragments/estilos :: base}"></style>
     <style>
         .recomendacoes { display: flex; flex-direction: column; gap: 10px; }
@@ -61,6 +62,7 @@
         <section class="card">
             <h2>Desempenho semanal</h2>
             <p class="descricao">Últimas semanas, calculado automaticamente das Ordens de Serviço faturadas.</p>
+            <canvas id="graficoSemanas" height="90" th:unless="${analise.semanas().isEmpty()}" style="margin-bottom:16px;"></canvas>
             <div class="tabela-scroll">
                 <table th:unless="${analise.semanas().isEmpty()}">
                     <thead>
@@ -98,6 +100,7 @@
                 Período do último "Vendas por Produto" importado (fechado em <span th:text="${#temporals.format(analise.periodoRanking(), 'dd/MM/yyyy')}">01/01/2026</span>).
             </p>
             <p class="vazio" th:if="${analise.ranking().isEmpty()}">Nenhum "Vendas por Produto" importado ainda — use Importar Dados.</p>
+            <canvas id="graficoRanking" height="160" th:unless="${analise.ranking().isEmpty()}" style="margin-bottom:16px;"></canvas>
             <div th:unless="${analise.ranking().isEmpty()}">
                 <div th:each="c, iter : ${analise.ranking()}" style="margin-bottom:10px;">
                     <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
@@ -116,6 +119,7 @@
     <section class="card">
         <h2>Margem por categoria (mês atual)</h2>
         <p class="descricao">Faturamento menos custo dos itens/serviços da Conferência de OS do mês, por grupo — ordenado da margem mais apertada pra mais folgada.</p>
+        <canvas id="graficoMargens" height="80" th:unless="${analise.margens().isEmpty()}" style="margin-bottom:16px;"></canvas>
         <div class="tabela-scroll">
             <table th:unless="${analise.margens().isEmpty()}">
                 <thead>
@@ -141,5 +145,83 @@
 </main>
 
 <script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
+<script th:inline="javascript" th:unless="${analise.semanas().isEmpty()}">
+    const labelsSemanas = /*[[${analise.semanas().![#temporals.format(inicio, 'dd/MM')]}]]*/ [];
+    const faturamentoSemanas = /*[[${analise.semanas().![faturamento]}]]*/ [];
+
+    const rootSemanas = getComputedStyle(document.documentElement);
+    new Chart(document.getElementById('graficoSemanas'), {
+        type: 'bar',
+        data: {
+            labels: labelsSemanas,
+            datasets: [{
+                label: 'Faturamento na semana',
+                data: faturamentoSemanas,
+                backgroundColor: rootSemanas.getPropertyValue('--series-1').trim()
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: rootSemanas.getPropertyValue('--text-secondary').trim() } },
+                y: { grid: { color: rootSemanas.getPropertyValue('--grid').trim() }, ticks: { color: rootSemanas.getPropertyValue('--text-secondary').trim() }, beginAtZero: true }
+            }
+        }
+    });
+</script>
+<script th:inline="javascript" th:unless="${analise.ranking().isEmpty()}">
+    const labelsRanking = /*[[${analise.ranking().![categoria]}]]*/ [];
+    const valoresRanking = /*[[${analise.ranking().![faturamento]}]]*/ [];
+
+    const rootRanking = getComputedStyle(document.documentElement);
+    const paletaRanking = [
+        rootRanking.getPropertyValue('--series-1').trim(),
+        rootRanking.getPropertyValue('--series-2').trim(),
+        rootRanking.getPropertyValue('--brand-hover').trim(),
+        rootRanking.getPropertyValue('--muted').trim(),
+        '#8AB4F8', '#F6BF26', '#7CB342', '#AB47BC'
+    ];
+    new Chart(document.getElementById('graficoRanking'), {
+        type: 'doughnut',
+        data: {
+            labels: labelsRanking,
+            datasets: [{
+                data: valoresRanking,
+                backgroundColor: labelsRanking.map((_, i) => paletaRanking[i % paletaRanking.length])
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { position: 'right', labels: { color: rootRanking.getPropertyValue('--text-secondary').trim() } } }
+        }
+    });
+</script>
+<script th:inline="javascript" th:unless="${analise.margens().isEmpty()}">
+    const labelsMargens = /*[[${analise.margens().![grupo]}]]*/ [];
+    const valoresMargens = /*[[${analise.margens().![margemPercentual]}]]*/ [];
+
+    const rootMargens = getComputedStyle(document.documentElement);
+    new Chart(document.getElementById('graficoMargens'), {
+        type: 'bar',
+        data: {
+            labels: labelsMargens,
+            datasets: [{
+                label: 'Margem %',
+                data: valoresMargens,
+                backgroundColor: rootMargens.getPropertyValue('--series-2').trim()
+            }]
+        },
+        options: {
+            responsive: true,
+            indexAxis: 'y',
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { color: rootMargens.getPropertyValue('--grid').trim() }, ticks: { color: rootMargens.getPropertyValue('--text-secondary').trim() } },
+                y: { grid: { display: false }, ticks: { color: rootMargens.getPropertyValue('--text-secondary').trim() } }
+            }
+        }
+    });
+</script>
 </body>
 </html>

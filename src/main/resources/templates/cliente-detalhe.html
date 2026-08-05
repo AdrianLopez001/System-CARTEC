@@ -11,7 +11,7 @@
 <div class="page-header">
     <div>
         <h1 th:text="${cliente.nome}">Nome</h1>
-        <p th:text="${cliente.telefone} + (${cliente.tag} != null ? ' · ' + ${cliente.tag} : '')">Telefone</p>
+        <p th:text="${cliente.telefone} + ${cliente.tag != null ? ' · ' + cliente.tag : ''}">Telefone</p>
     </div>
 </div>
 <main>
@@ -59,6 +59,11 @@
 
             <section class="card">
                 <h2>Dados</h2>
+                <p><strong>Telefone:</strong> <span th:text="${cliente.telefone}">-</span></p>
+                <a class="botao" style="display:inline-block; margin:4px 0 12px;"
+                   th:href="@{'https://wa.me/' + ${cliente.telefone}}" target="_blank" rel="noopener">
+                    💬 Iniciar contato no WhatsApp
+                </a>
                 <p><strong>Email:</strong> <span th:text="${cliente.email} ?: '-'">-</span></p>
                 <p><strong>Empresa:</strong> <span th:text="${cliente.empresa != null ? cliente.empresa.nome : '-'}">-</span></p>
                 <p><strong>Observações:</strong> <span th:text="${cliente.observacoes} ?: '-'">-</span></p>
@@ -69,7 +74,7 @@
                 <p th:if="${cliente.bairro != null}"><strong>Bairro:</strong> <span th:text="${cliente.bairro}">-</span></p>
                 <p th:if="${cliente.enderecoLogradouro != null}"><strong>Endereço:</strong> <span th:text="${cliente.enderecoLogradouro}">-</span></p>
                 <p th:if="${cliente.ultimaVendaData != null}"><strong>Última venda (histórico):</strong>
-                    <span th:text="${#temporals.format(cliente.ultimaVendaData, 'dd/MM/yyyy')} + (cliente.ultimaVendaVeiculo != null ? ' — ' + cliente.ultimaVendaVeiculo : '') + (cliente.ultimaVendaPlaca != null ? ' (' + cliente.ultimaVendaPlaca + ')' : '')">-</span>
+                    <span th:text="${#temporals.format(cliente.ultimaVendaData, 'dd/MM/yyyy') + (cliente.ultimaVendaVeiculo != null ? ' — ' + cliente.ultimaVendaVeiculo : '') + (cliente.ultimaVendaPlaca != null ? ' (' + cliente.ultimaVendaPlaca + ')' : '')}">-</span>
                 </p>
             </section>
 

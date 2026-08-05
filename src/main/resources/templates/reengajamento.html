@@ -54,7 +54,8 @@
                 </tr>
                 </thead>
                 <tbody>
-                <tr th:each="l : ${linhas}">
+                <tr th:each="l : ${linhas}" style="cursor:pointer;"
+                    th:onclick="'window.location=\'' + @{'/clientes/' + ${l.cliente.id}} + '\''">
                     <td><a th:href="@{'/clientes/' + ${l.cliente.id}}" th:text="${l.cliente.nome}">Nome</a></td>
                     <td th:text="${l.cliente.telefone}">-</td>
                     <td>

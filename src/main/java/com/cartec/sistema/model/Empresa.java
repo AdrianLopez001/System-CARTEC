@@ -34,6 +34,9 @@ public class Empresa {
     @Column(name = "email")
     private String email;
 
+    @Column(name = "tag")
+    private String tag;
+
     @Column(name = "observacoes")
     private String observacoes;
 
@@ -100,6 +103,14 @@ public class Empresa {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getTag() {
+        return tag;
+    }
+
+    public void setTag(String tag) {
+        this.tag = tag;
     }
 
     public String getObservacoes() {
