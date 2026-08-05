@@ -116,7 +116,7 @@ public class ClienteImportService {
                 cliente.setTelefone(telefone);
                 cliente.setSexo(c.sexo);
                 cliente.setDataNascimento(c.dataNascimento);
-                cliente.setTipoPessoa(c.tipoPessoa);
+                cliente.setTipoPessoa(normalizarTipoPessoa(c.tipoPessoa));
                 if (c.email != null) {
                     cliente.setEmail(c.email);
                 }
@@ -143,6 +143,28 @@ public class ClienteImportService {
             int totalLinhas = resultado.contatos().size() + resultado.divergencias().size();
             return new ResultadoImportacao(totalLinhas, totalGravado, divergencias);
         }
+    }
+
+    /**
+     * A coluna "Física/Jurídica" do export CRMBI vem como texto livre ("Física",
+     * "Jurídica", às vezes sem acento) - mas as telas de Clientes filtram por
+     * comparação exata com "PF"/"PJ"/"Fisica"/"Juridica". Sem essa normalização o
+     * cliente é gravado no banco só não aparece em nenhuma aba (nem PF nem PJ).
+     */
+    private String normalizarTipoPessoa(String bruto) {
+        if (bruto == null || bruto.isBlank()) {
+            return null;
+        }
+        String semAcento = java.text.Normalizer.normalize(bruto.trim(), java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT);
+        if (semAcento.startsWith("fisic") || semAcento.equals("pf")) {
+            return "PF";
+        }
+        if (semAcento.startsWith("jurid") || semAcento.equals("pj")) {
+            return "PJ";
+        }
+        return bruto;
     }
 
     private Map<String, Integer> mapearColunas(Row cabecalho) {

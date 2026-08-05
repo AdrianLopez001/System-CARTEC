@@ -44,6 +44,7 @@ public class DashboardController {
 
     @GetMapping("/")
     public String visaoDaSemana(Model model) {
+        projecaoMensalService.recalcularMetricasSemanaisAPartirDeOrdensServico();
         List<MetricaSemanal> metricas = metricaSemanalRepository.findAllByOrderBySemanaInicioAsc();
         model.addAttribute("metricas", metricas);
 

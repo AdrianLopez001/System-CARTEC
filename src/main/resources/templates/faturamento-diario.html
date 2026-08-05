@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Cartec — Faturamento Diário</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <style th:replace="~{fragments/estilos :: base}"></style>
     <style>
         .upload-area { border: 2px dashed var(--grid); border-radius: 10px; padding: 24px; text-align: center; background: var(--page); transition: border-color .15s; }
@@ -40,40 +41,49 @@
         <div id="alertaResultado"></div>
     </section>
 
-    <section class="resultado-resumo card" id="painelResumo">
+    <section class="resultado-resumo card" th:classappend="${projecao.totalOs > 0} ? ' visivel'" id="painelResumo">
         <h2>Efeito no mês</h2>
-        <p class="descricao" id="descricaoResumo"></p>
+        <p class="descricao" id="descricaoResumo"
+           th:text="${'Dia ' + projecao.diasDecorridos + ' de ' + projecao.diasNoMes + ' do mês, ' + projecao.totalOs + ' OS faturadas no total.'}"></p>
         <div class="tiles">
             <div class="tile">
                 <div class="label">Faturado no mês</div>
-                <div class="value" id="tileValorAtual">R$ 0,00</div>
+                <div class="value" id="tileValorAtual"
+                     th:text="${'R$ ' + #numbers.formatDecimal(projecao.valorAtual, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
             </div>
             <div class="tile">
                 <div class="label">Ticket médio</div>
-                <div class="value" id="tileTicketMedio">—</div>
+                <div class="value" id="tileTicketMedio"
+                     th:text="${projecao.totalOs > 0 ? 'R$ ' + #numbers.formatDecimal(projecao.valorAtual / projecao.totalOs, 1, 'POINT', 2, 'COMMA') : 'sem dado ainda'}">—</div>
             </div>
             <div class="tile">
                 <div class="label">Projeção de fechamento</div>
-                <div class="value" id="tileProjecao">R$ 0,00</div>
+                <div class="value" id="tileProjecao"
+                     th:text="${'R$ ' + #numbers.formatDecimal(projecao.projecaoFechamento, 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
             </div>
             <div class="tile">
                 <div class="label">% da meta (atual → projetado)</div>
-                <div class="value" id="tilePercentualMeta">—</div>
+                <div class="value" id="tilePercentualMeta"
+                     th:text="${projecao.percentualMetaAtual != null ? (#numbers.formatDecimal(projecao.percentualMetaAtual, 1, 'POINT', 1, 'COMMA') + '% → ' + #numbers.formatDecimal(projecao.percentualMetaProjetado, 1, 'POINT', 1, 'COMMA') + '%') : 'cadastre a meta no Dashboard'}">—</div>
             </div>
         </div>
+
+        <canvas id="graficoProjecao" height="80" style="margin-top:20px;" th:unless="${projecao.totalOs == 0}"></canvas>
+        <p class="vazio" th:if="${projecao.totalOs == 0}">Nenhuma OS faturada neste mês ainda — envie o arquivo do dia acima.</p>
+
         <p class="descricao" style="margin-top:16px;">
-            Quer ver o histórico completo, gráfico e cadastrar a meta do mês? <a th:href="@{/}">Abra o Dashboard</a>.
+            Quer ver o histórico completo e cadastrar a meta do mês? <a th:href="@{/}">Abra o Dashboard</a>.
         </p>
+    </section>
+
+    <section class="card" th:unless="${metricas.isEmpty()}">
+        <h2>Ticket médio — histórico semanal</h2>
+        <canvas id="graficoTicketMedio" height="90"></canvas>
     </section>
 </main>
 
 <script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
-<script>
-    function formatarMoeda(valor) {
-        if (valor === null || valor === undefined) return 'R$ 0,00';
-        return 'R$ ' + Number(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-
+<script th:inline="javascript">
     document.getElementById('formFaturamento').addEventListener('submit', async (e) => {
         e.preventDefault();
         const fileInput = document.getElementById('fileFaturamento');
@@ -86,7 +96,6 @@
 
         btn.disabled = true;
         alerta.innerHTML = '<div class="resultado-alerta ok">Processando arquivo...</div>';
-        document.getElementById('painelResumo').classList.remove('visivel');
 
         try {
             const res = await fetch('/api/faturamento/enviar', { method: 'POST', body: formData });
@@ -98,28 +107,104 @@
                 if (imp.divergencias && imp.divergencias.length) {
                     msg += ` ${imp.divergencias.length} alerta(s) em linhas específicas.`;
                 }
-                alerta.innerHTML = '<div class="resultado-alerta ok">' + msg + '</div>';
-
-                document.getElementById('descricaoResumo').textContent =
-                    `Dia ${dados.diasDecorridos} de ${dados.diasNoMes} do mês, ${dados.totalOs} OS faturadas no total.`;
-                document.getElementById('tileValorAtual').textContent = formatarMoeda(dados.valorAtual);
-                document.getElementById('tileTicketMedio').textContent = dados.ticketMedio ? formatarMoeda(dados.ticketMedio) : 'sem dado ainda';
-                document.getElementById('tileProjecao').textContent = formatarMoeda(dados.projecaoFechamento);
-                if (dados.percentualMetaAtual != null) {
-                    document.getElementById('tilePercentualMeta').textContent =
-                        Number(dados.percentualMetaAtual).toFixed(1) + '% → ' + Number(dados.percentualMetaProjetado).toFixed(1) + '%';
-                } else {
-                    document.getElementById('tilePercentualMeta').textContent = 'cadastre a meta no Dashboard';
-                }
-                document.getElementById('painelResumo').classList.add('visivel');
-                fileInput.value = '';
+                // Guarda a mensagem pra mostrar depois do reload (os tiles/gráficos vêm
+                // renderizados pelo servidor com o mês já atualizado após essa importação).
+                sessionStorage.setItem('faturamentoDiarioMsg', msg);
+                window.location.reload();
             } else {
                 alerta.innerHTML = '<div class="resultado-alerta erro">Erro ao importar: ' + (dados.message || 'verifique o formato do arquivo.') + '</div>';
+                btn.disabled = false;
             }
         } catch (err) {
             alerta.innerHTML = '<div class="resultado-alerta erro">Erro de rede: ' + err.message + '</div>';
-        } finally {
             btn.disabled = false;
+        }
+    });
+
+    (function mostrarMensagemPendente() {
+        const msg = sessionStorage.getItem('faturamentoDiarioMsg');
+        if (msg) {
+            document.getElementById('alertaResultado').innerHTML = '<div class="resultado-alerta ok">' + msg + '</div>';
+            sessionStorage.removeItem('faturamentoDiarioMsg');
+        }
+    })();
+
+    const diasGrafico = /*[[${diasGrafico}]]*/ [];
+    const valoresGrafico = /*[[${valoresGrafico}]]*/ [];
+    const valorMetaAtual = /*[[${projecao.valorMeta}]]*/ null;
+
+    if (diasGrafico.length) {
+        const root = getComputedStyle(document.documentElement);
+        const corSerie = root.getPropertyValue('--series-1').trim();
+        const corGrid = root.getPropertyValue('--grid').trim();
+        const corTexto = root.getPropertyValue('--text-secondary').trim();
+        const corMuted = root.getPropertyValue('--muted').trim();
+
+        const datasets = [{
+            label: 'Faturado acumulado',
+            data: valoresGrafico,
+            borderColor: corSerie,
+            backgroundColor: corSerie,
+            borderWidth: 2,
+            pointRadius: 3,
+            tension: 0.1
+        }];
+        if (valorMetaAtual != null) {
+            datasets.push({
+                label: 'Meta',
+                data: diasGrafico.map(() => valorMetaAtual),
+                borderColor: corMuted,
+                borderDash: [6, 4],
+                borderWidth: 1.5,
+                pointRadius: 0
+            });
+        }
+
+        new Chart(document.getElementById('graficoProjecao'), {
+            type: 'line',
+            data: { labels: diasGrafico, datasets: datasets },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: valorMetaAtual != null } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { color: corTexto } },
+                    y: { grid: { color: corGrid }, ticks: { color: corTexto }, beginAtZero: true }
+                }
+            }
+        });
+    }
+</script>
+<script th:inline="javascript" th:unless="${metricas.isEmpty()}">
+    const labelsTicket = /*[[${metricas.![#temporals.format(semanaInicio, 'dd/MM')]}]]*/ [];
+    const valoresTicket = /*[[${metricas.![ticketMedio]}]]*/ [];
+
+    const rootTicket = getComputedStyle(document.documentElement);
+    const corSerieTicket = rootTicket.getPropertyValue('--series-1').trim();
+    const corGridTicket = rootTicket.getPropertyValue('--grid').trim();
+    const corTextoTicket = rootTicket.getPropertyValue('--text-secondary').trim();
+
+    new Chart(document.getElementById('graficoTicketMedio'), {
+        type: 'line',
+        data: {
+            labels: labelsTicket,
+            datasets: [{
+                label: 'Ticket médio',
+                data: valoresTicket,
+                borderColor: corSerieTicket,
+                backgroundColor: corSerieTicket,
+                borderWidth: 2,
+                pointRadius: 4,
+                pointHoverRadius: 5,
+                tension: 0.15
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: corTextoTicket } },
+                y: { grid: { color: corGridTicket }, ticks: { color: corTextoTicket }, beginAtZero: false }
+            }
         }
     });
 </script>

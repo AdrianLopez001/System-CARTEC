@@ -180,7 +180,7 @@
             const data = await response.json();
             if (response.ok) {
                 resBox.className = 'resultado-box sucesso';
-                let msg = `Sucesso! Total lido: ${data.totalLinhas || 0}, Registros gravados: ${data.totalGravados || 0}.`;
+                let msg = `Sucesso! Total lido: ${data.totalLinhasLidas || 0}, Registros gravados: ${data.totalGravado || 0}.`;
                 if (data.divergencias && data.divergencias.length) {
                     msg += ` (${data.divergencias.length} alertas em linhas especificas)`;
                 }

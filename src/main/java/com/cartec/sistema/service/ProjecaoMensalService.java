@@ -1,18 +1,25 @@
 package com.cartec.sistema.service;
 
 import com.cartec.sistema.model.Meta;
+import com.cartec.sistema.model.MetricaSemanal;
 import com.cartec.sistema.model.OrdemServico;
+import com.cartec.sistema.model.OrigemLancamento;
 import com.cartec.sistema.repository.MetaRepository;
+import com.cartec.sistema.repository.MetricaSemanalRepository;
 import com.cartec.sistema.repository.OrdemServicoRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * Projecao de fechamento do mes ("visando o trabalho pra desempenhar no
@@ -30,13 +37,52 @@ public class ProjecaoMensalService {
     private final OrdemServicoRepository ordemServicoRepository;
     private final MetaRepository metaRepository;
     private final MetricaService metricaService;
+    private final MetricaSemanalRepository metricaSemanalRepository;
 
     public ProjecaoMensalService(OrdemServicoRepository ordemServicoRepository,
                                   MetaRepository metaRepository,
-                                  MetricaService metricaService) {
+                                  MetricaService metricaService,
+                                  MetricaSemanalRepository metricaSemanalRepository) {
         this.ordemServicoRepository = ordemServicoRepository;
         this.metaRepository = metaRepository;
         this.metricaService = metricaService;
+        this.metricaSemanalRepository = metricaSemanalRepository;
+    }
+
+    /**
+     * Recalcula o ticket medio semanal (metrica_semanal) direto das OrdemServico reais,
+     * agrupando por semana ISO (segunda a domingo). Sem isso a tabela metrica_semanal
+     * nunca era populada a partir dos dados importados - so por lancamento manual - e
+     * os cards de ticket medio/variacao do dashboard ficavam sempre vazios.
+     */
+    public void recalcularMetricasSemanaisAPartirDeOrdensServico() {
+        List<OrdemServico> ordens = ordemServicoRepository.findByDemoFalse();
+        Map<LocalDate, List<OrdemServico>> porSemana = ordens.stream()
+                .filter(os -> dataDe(os) != null)
+                .collect(Collectors.groupingBy(os -> dataDe(os).with(DayOfWeek.MONDAY)));
+
+        LocalDateTime agora = LocalDateTime.now();
+        porSemana.forEach((segunda, ordensDaSemana) -> {
+            BigDecimal total = ordensDaSemana.stream()
+                    .map(OrdemServico::getValorTotal)
+                    .filter(Objects::nonNull)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal ticketMedio = total.divide(BigDecimal.valueOf(ordensDaSemana.size()), 2, RoundingMode.HALF_UP);
+
+            MetricaSemanal metrica = metricaSemanalRepository.findBySemanaInicio(segunda)
+                    .orElseGet(MetricaSemanal::new);
+            metrica.setSemanaInicio(segunda);
+            metrica.setSemanaFim(segunda.plusDays(6));
+            metrica.setTicketMedio(ticketMedio);
+            metrica.setNumeroAtendimentos(ordensDaSemana.size());
+            metrica.setOrigem(OrigemLancamento.CALCULADA);
+            metrica.setDemo(false);
+            if (metrica.getDataLancamento() == null) {
+                metrica.setDataLancamento(agora);
+            }
+            metrica.setDataAlteracao(agora);
+            metricaSemanalRepository.save(metrica);
+        });
     }
 
     public Projecao calcular(YearMonth mes) {
