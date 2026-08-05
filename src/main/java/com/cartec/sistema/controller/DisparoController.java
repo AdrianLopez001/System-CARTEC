@@ -3,10 +3,16 @@ package com.cartec.sistema.controller;
 import com.cartec.sistema.model.Disparo;
 import com.cartec.sistema.model.DisparoItem;
 import com.cartec.sistema.service.DisparoAutomaticoService;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -39,6 +45,53 @@ public class DisparoController {
         }
         int limite = corpo.get("limiteDiario") != null ? ((Number) corpo.get("limiteDiario")).intValue() : 40;
         return service.criar(nome, mensagem, limite);
+    }
+
+    @PostMapping("/lista-texto")
+    public Disparo criarDeTexto(@RequestBody Map<String, Object> corpo) {
+        String nome = (String) corpo.getOrDefault("nome", "Disparo — lista colada");
+        String mensagem = (String) corpo.get("mensagemTemplate");
+        if (mensagem == null || mensagem.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "mensagemTemplate e obrigatorio");
+        }
+        String numeros = (String) corpo.get("numeros");
+        int limite = corpo.get("limiteDiario") != null ? ((Number) corpo.get("limiteDiario")).intValue() : 40;
+        try {
+            return service.criarDeTexto(nome, mensagem, limite, numeros);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        }
+    }
+
+    @PostMapping(value = "/lista-xls", consumes = "multipart/form-data")
+    public Disparo criarDeXls(@RequestParam("arquivo") MultipartFile arquivo,
+                               @RequestParam(defaultValue = "Disparo — planilha") String nome,
+                               @RequestParam String mensagemTemplate,
+                               @RequestParam(defaultValue = "40") int limiteDiario) {
+        if (mensagemTemplate == null || mensagemTemplate.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "mensagemTemplate e obrigatorio");
+        }
+        try {
+            return service.criarDeXls(nome, mensagemTemplate, limiteDiario, arquivo);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nao foi possivel ler a planilha: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/modelo-xls")
+    public ResponseEntity<byte[]> modeloXls() {
+        try {
+            byte[] arquivo = service.gerarModeloXlsx();
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            ContentDisposition.attachment().filename("modelo-lista-disparo.xlsx").build().toString())
+                    .body(arquivo);
+        } catch (IOException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao gerar modelo: " + e.getMessage());
+        }
     }
 
     @PostMapping("/{id}/iniciar")

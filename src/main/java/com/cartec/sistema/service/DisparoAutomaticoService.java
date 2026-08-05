@@ -10,20 +10,33 @@ import com.cartec.sistema.repository.ClienteRepository;
 import com.cartec.sistema.repository.DisparoItemRepository;
 import com.cartec.sistema.repository.DisparoRepository;
 import com.cartec.sistema.util.PhoneUtils;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Disparo automatico de WhatsApp — SOMENTE para PF sem historico de compra
@@ -83,27 +96,108 @@ public class DisparoAutomaticoService {
     }
 
     public Disparo criar(String nome, String mensagemTemplate, int limiteDiario) {
-        List<Cliente> alvo = listarAlvoAtual();
+        List<Destinatario> destinatarios = listarAlvoAtual().stream()
+                .map(c -> new Destinatario(c.getId(), c.getNome(), PhoneUtils.padronizar(c.getTelefone())))
+                .toList();
+        return criarComDestinatarios(nome, mensagemTemplate, limiteDiario, destinatarios);
+    }
 
+    /**
+     * Fonte alternativa de audiencia: numeros colados em texto livre (um por
+     * linha, ou separados por virgula/ponto-e-virgula) - pro caso de quem
+     * quer disparar pra uma lista especifica em vez da base PF sem historico.
+     * Casa por telefone com Cliente existente pra herdar o nome (personaliza
+     * {nome} na mensagem); sem match, usa o proprio texto colado como nome.
+     */
+    public Disparo criarDeTexto(String nome, String mensagemTemplate, int limiteDiario, String numerosColados) {
+        if (numerosColados == null || numerosColados.isBlank()) {
+            throw new IllegalArgumentException("Cole ao menos um numero de telefone.");
+        }
+        Set<String> vistos = new LinkedHashSet<>();
+        List<Destinatario> destinatarios = new ArrayList<>();
+        for (String bruto : numerosColados.split("[\\r\\n,;]+")) {
+            String linha = bruto.trim();
+            if (linha.isEmpty()) {
+                continue;
+            }
+            String telefone = PhoneUtils.padronizar(linha);
+            if (!PhoneUtils.isValido(telefone) || !vistos.add(telefone)) {
+                continue;
+            }
+            Optional<Cliente> cliente = clienteRepository.findByTelefone(telefone);
+            destinatarios.add(new Destinatario(
+                    cliente.map(Cliente::getId).orElse(null),
+                    cliente.map(Cliente::getNome).orElse(linha),
+                    telefone));
+        }
+        if (destinatarios.isEmpty()) {
+            throw new IllegalArgumentException("Nenhum numero valido encontrado no texto colado.");
+        }
+        return criarComDestinatarios(nome, mensagemTemplate, limiteDiario, destinatarios);
+    }
+
+    /** Fonte alternativa de audiencia: planilha (modelo baixavel em /api/disparos/modelo-xls). */
+    public Disparo criarDeXls(String nome, String mensagemTemplate, int limiteDiario, MultipartFile arquivo) throws IOException {
+        List<Destinatario> destinatarios = new ArrayList<>();
+        Set<String> vistos = new LinkedHashSet<>();
+        try (InputStream in = arquivo.getInputStream(); Workbook workbook = WorkbookFactory.create(in)) {
+            ListaDisparoXlsxParser.Resultado resultado = ListaDisparoXlsxParser.parse(workbook.getSheetAt(0));
+            for (ListaDisparoXlsxParser.Contato c : resultado.contatos()) {
+                String telefone = PhoneUtils.padronizar(c.telefoneBruto());
+                if (!PhoneUtils.isValido(telefone) || !vistos.add(telefone)) {
+                    continue;
+                }
+                Optional<Cliente> cliente = clienteRepository.findByTelefone(telefone);
+                String nomeContato = c.nome() != null && !c.nome().isBlank() ? c.nome() : cliente.map(Cliente::getNome).orElse(c.telefoneBruto());
+                destinatarios.add(new Destinatario(cliente.map(Cliente::getId).orElse(null), nomeContato, telefone));
+            }
+        }
+        if (destinatarios.isEmpty()) {
+            throw new IllegalArgumentException("Nenhum telefone valido encontrado na planilha - confira se a coluna \"Telefone\" existe e esta preenchida.");
+        }
+        return criarComDestinatarios(nome, mensagemTemplate, limiteDiario, destinatarios);
+    }
+
+    /** Gera o xlsx-modelo (Nome, Telefone) pro usuario baixar, preencher e reenviar em criarDeXls. */
+    public byte[] gerarModeloXlsx() throws IOException {
+        try (XSSFWorkbook workbook = new XSSFWorkbook(); ByteArrayOutputStream saida = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Lista de disparo");
+            Row cabecalho = sheet.createRow(0);
+            cabecalho.createCell(0).setCellValue("Nome");
+            cabecalho.createCell(1).setCellValue("Telefone");
+            Row exemplo = sheet.createRow(1);
+            exemplo.createCell(0).setCellValue("João da Silva");
+            exemplo.createCell(1).setCellValue("(84) 99999-8888");
+            sheet.setColumnWidth(0, 8000);
+            sheet.setColumnWidth(1, 6000);
+            workbook.write(saida);
+            return saida.toByteArray();
+        }
+    }
+
+    private Disparo criarComDestinatarios(String nome, String mensagemTemplate, int limiteDiario, List<Destinatario> destinatarios) {
         Disparo disparo = new Disparo();
         disparo.setNome(nome);
         disparo.setMensagemTemplate(mensagemTemplate);
         disparo.setLimiteDiario(Math.max(1, limiteDiario));
-        disparo.setTotalAlvo(alvo.size());
+        disparo.setTotalAlvo(destinatarios.size());
         disparo.setStatus(StatusDisparo.RASCUNHO);
         disparo = disparoRepository.save(disparo);
 
-        for (Cliente cliente : alvo) {
+        for (Destinatario d : destinatarios) {
             DisparoItem item = new DisparoItem();
             item.setDisparo(disparo);
-            item.setClienteId(cliente.getId());
-            item.setNome(cliente.getNome());
-            item.setTelefone(PhoneUtils.padronizar(cliente.getTelefone()));
+            item.setClienteId(d.clienteId());
+            item.setNome(d.nome());
+            item.setTelefone(d.telefone());
             item.setStatus(StatusItemDisparo.PENDENTE);
             disparoItemRepository.save(item);
         }
 
         return disparo;
+    }
+
+    private record Destinatario(Long clienteId, String nome, String telefone) {
     }
 
     public Disparo iniciar(Long disparoId) {

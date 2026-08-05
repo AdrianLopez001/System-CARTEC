@@ -41,6 +41,9 @@
 
         textarea#mensagemTemplate { width: 100%; min-height: 110px; }
         .dica { font-size: 0.76rem; color: var(--muted); margin-top: 4px; }
+        .fonte-lista { display: flex; gap: 14px; flex-wrap: wrap; margin: 6px 0 4px 0; }
+        .fonte-opcao { display: flex; align-items: center; gap: 6px; font-weight: 400; font-size: 0.88rem; cursor: pointer; }
+        .fonte-opcao input { margin: 0; }
     </style>
 </head>
 <body>
@@ -100,7 +103,27 @@
         <!-- CONFIGURAÇÃO DO DISPARO -->
         <section class="card">
             <h2 style="margin-top:0;">Configurar disparo</h2>
+
+            <label>Quem vai receber</label>
+            <div class="fonte-lista" id="fonteLista">
+                <label class="fonte-opcao"><input type="radio" name="fonte" value="pf-sem-historico" checked onchange="trocarFonte('pf-sem-historico')"> PF sem histórico (base automática)</label>
+                <label class="fonte-opcao"><input type="radio" name="fonte" value="texto" onchange="trocarFonte('texto')"> Colar números</label>
+                <label class="fonte-opcao"><input type="radio" name="fonte" value="xls" onchange="trocarFonte('xls')"> Enviar planilha</label>
+            </div>
+
             <p class="descricao" id="descAlvo">Carregando base elegível...</p>
+
+            <div id="blocoTexto" style="display:none; margin-bottom:12px;">
+                <label for="numerosColados">Números (um por linha, ou separados por vírgula)</label>
+                <textarea id="numerosColados" placeholder="(84) 99999-8888&#10;84 98888-7777&#10;84999996666" style="min-height:90px;"></textarea>
+                <div class="dica">Aceita com ou sem DDI/formatação — o sistema limpa e valida cada número sozinho.</div>
+            </div>
+
+            <div id="blocoXls" style="display:none; margin-bottom:12px;">
+                <label for="fileDisparoXls">Planilha (.xlsx) com colunas Nome e Telefone</label>
+                <input type="file" id="fileDisparoXls" accept=".xlsx,.xls">
+                <div class="dica"><a href="/api/disparos/modelo-xls">Baixar modelo em branco</a> — preencha e envie de volta aqui.</div>
+            </div>
 
             <label for="mensagemTemplate">Mensagem (use <code>{nome}</code> para o primeiro nome)</label>
             <textarea id="mensagemTemplate" placeholder="Olá {nome}! Aqui é da Cartec Bosch Service, em Natal/RN. Vimos seu cadastro por aqui e queríamos te conhecer melhor — topa agendar uma avaliação gratuita do seu carro? Se preferir não receber mais mensagens, responda SAIR."></textarea>
@@ -208,7 +231,17 @@
         c.style.display = c.style.display === 'none' ? 'block' : 'none';
     }
 
-    // ───────────── Base elegível ─────────────
+    // ───────────── Fonte da lista (PF sem histórico / texto colado / planilha) ─────────────
+    let fonteAtiva = 'pf-sem-historico';
+
+    function trocarFonte(fonte) {
+        fonteAtiva = fonte;
+        document.getElementById('blocoTexto').style.display = fonte === 'texto' ? 'block' : 'none';
+        document.getElementById('blocoXls').style.display = fonte === 'xls' ? 'block' : 'none';
+        document.getElementById('descAlvo').style.display = fonte === 'pf-sem-historico' ? 'block' : 'none';
+    }
+
+    // ───────────── Base elegível (só quando a fonte é PF sem histórico) ─────────────
     async function carregarAlvo() {
         const res = await fetch('/api/disparos/alvo-atual');
         const data = await res.json();
@@ -220,17 +253,39 @@
     async function criarDisparo() {
         const mensagem = document.getElementById('mensagemTemplate').value.trim();
         const limiteDiario = parseInt(document.getElementById('limiteDiario').value, 10) || 40;
-        document.getElementById('mensagemErro').textContent = '';
+        const erroBox = document.getElementById('mensagemErro');
+        erroBox.textContent = '';
         if (!mensagem) {
-            document.getElementById('mensagemErro').textContent = 'Escreva a mensagem antes de validar.';
+            erroBox.textContent = 'Escreva a mensagem antes de validar.';
             return;
         }
+
         try {
-            const res = await fetch('/api/disparos', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nome: 'Disparo PF sem histórico', mensagemTemplate: mensagem, limiteDiario })
-            });
+            let res;
+            if (fonteAtiva === 'texto') {
+                const numeros = document.getElementById('numerosColados').value.trim();
+                if (!numeros) { erroBox.textContent = 'Cole ao menos um número de telefone.'; return; }
+                res = await fetch('/api/disparos/lista-texto', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome: 'Disparo — lista colada', mensagemTemplate: mensagem, limiteDiario, numeros })
+                });
+            } else if (fonteAtiva === 'xls') {
+                const arquivo = document.getElementById('fileDisparoXls').files[0];
+                if (!arquivo) { erroBox.textContent = 'Escolha a planilha antes de validar.'; return; }
+                const formData = new FormData();
+                formData.append('arquivo', arquivo);
+                formData.append('nome', 'Disparo — planilha');
+                formData.append('mensagemTemplate', mensagem);
+                formData.append('limiteDiario', limiteDiario);
+                res = await fetch('/api/disparos/lista-xls', { method: 'POST', body: formData });
+            } else {
+                res = await fetch('/api/disparos', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nome: 'Disparo PF sem histórico', mensagemTemplate: mensagem, limiteDiario })
+                });
+            }
             if (!res.ok) throw new Error((await res.json()).message || 'Erro ao criar disparo');
             disparoAtual = await res.json();
             document.getElementById('btnCriar').style.display = 'none';
@@ -238,7 +293,7 @@
             atualizarPainelProgresso();
             atualizarSinais();
         } catch (err) {
-            document.getElementById('mensagemErro').textContent = err.message;
+            erroBox.textContent = err.message;
         }
     }
 
