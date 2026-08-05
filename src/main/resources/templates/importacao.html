@@ -49,6 +49,27 @@
             <div id="resClientes" class="resultado-box"></div>
         </section>
 
+        <!-- CARD 1B: BASE CLASSIFICADA (COM TEMPERATURA) -->
+        <section class="card upload-card">
+            <div>
+                <h2 style="margin-top:0;">🌡️ Importar Base Classificada (Quente/Morno/Frio)</h2>
+                <p class="descricao">
+                    Suba a planilha <code>BASE DE CONTATOS - CLASSIFICADA.xlsx</code> (aba "Base Completa") — atualiza tipo (PF/PJ) e grava a temperatura de cada cliente como tag, pra usar no Disparo Automático.
+                </p>
+                <form id="formClassificado" enctype="multipart/form-data">
+                    <div class="upload-area">
+                        <label for="fileClassificado" style="cursor:pointer; display:block;">
+                            <span style="font-size:2rem; display:block; margin-bottom:8px;">🌡️</span>
+                            <strong>Clique aqui para escolher a planilha (.xlsx)</strong>
+                        </label>
+                        <input type="file" id="fileClassificado" accept=".xlsx,.xls" required style="margin-top:10px;">
+                    </div>
+                    <button type="submit" class="botao" style="width:100%; margin-top:16px;">Importar Base Classificada 🌡️</button>
+                </form>
+            </div>
+            <div id="resClassificado" class="resultado-box"></div>
+        </section>
+
         <!-- CARD 2: CONFERENCIA DE OS -->
         <section class="card upload-card">
             <div>
@@ -198,6 +219,11 @@
     document.getElementById('formClientes').addEventListener('submit', (e) => {
         e.preventDefault();
         enviarArquivo('/api/clientes/upload-completo', 'fileClientes', 'resClientes');
+    });
+
+    document.getElementById('formClassificado').addEventListener('submit', (e) => {
+        e.preventDefault();
+        enviarArquivo('/api/clientes/upload-classificado', 'fileClassificado', 'resClassificado');
     });
 
     document.getElementById('formOs').addEventListener('submit', (e) => {

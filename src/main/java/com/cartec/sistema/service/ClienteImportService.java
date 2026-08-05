@@ -146,6 +146,55 @@ public class ClienteImportService {
     }
 
     /**
+     * Import da "Base de Contatos Classificada" (aba Base Completa) - formato
+     * mais enxuto que a "Lista de Contatos Completo", mas ja vem com Tipo
+     * certo e uma Temperatura (Quente/Morno/Frio) pronta pra segmentar
+     * campanha, que vira a tag do cliente. So sobrescreve os campos que essa
+     * aba de fato tem - nao mexe em nascimento/endereco, que so a "Lista de
+     * Contatos Completo" preenche.
+     */
+    @Transactional
+    public ResultadoImportacao importarClassificadoXlsx(MultipartFile arquivo) throws IOException {
+        try (InputStream in = arquivo.getInputStream();
+             Workbook workbook = WorkbookFactory.create(in)) {
+
+            ClienteClassificadoXlsxParser.Resultado resultado = ClienteClassificadoXlsxParser.parse(workbook);
+            List<String> divergencias = new ArrayList<>(resultado.divergencias());
+            int totalGravado = 0;
+
+            for (ClienteClassificadoXlsxParser.ContatoImportado c : resultado.contatos()) {
+                String telefone = PhoneUtils.padronizar(c.telefoneBruto);
+
+                Cliente cliente = (c.codigoExterno != null ? clienteRepository.findByCodigoExterno(c.codigoExterno) : java.util.Optional.<Cliente>empty())
+                        .or(() -> clienteRepository.findByTelefone(telefone))
+                        .orElseGet(Cliente::new);
+
+                cliente.setCodigoExterno(c.codigoExterno);
+                cliente.setNome(c.nome);
+                cliente.setTelefone(telefone);
+                cliente.setTipoPessoa(normalizarTipoPessoa(c.tipoPessoaBruto));
+                if (c.email != null) {
+                    cliente.setEmail(c.email);
+                }
+                cliente.setCidade(c.cidade);
+                cliente.setBairro(c.bairro);
+                cliente.setUltimaVendaData(c.ultimaVendaData);
+                cliente.setQtdOsHistorico(c.qtdOsHistorico);
+                cliente.setTotalGastoHistorico(c.totalGastoHistorico);
+                if (c.temperatura != null && !c.temperatura.isBlank()) {
+                    cliente.setTag(c.temperatura);
+                }
+
+                clienteRepository.save(cliente);
+                totalGravado++;
+            }
+
+            int totalLinhas = resultado.contatos().size() + resultado.divergencias().size();
+            return new ResultadoImportacao(totalLinhas, totalGravado, divergencias);
+        }
+    }
+
+    /**
      * A coluna "Física/Jurídica" do export CRMBI vem como texto livre ("Física",
      * "Jurídica", às vezes sem acento) - mas as telas de Clientes filtram por
      * comparação exata com "PF"/"PJ"/"Fisica"/"Juridica". Sem essa normalização o
