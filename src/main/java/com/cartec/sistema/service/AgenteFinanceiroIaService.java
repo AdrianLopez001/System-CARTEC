@@ -144,7 +144,7 @@ public class AgenteFinanceiroIaService {
     private String chamarClaude(String resumoDados) {
         ObjectNode corpo = objectMapper.createObjectNode();
         corpo.put("model", modelo);
-        corpo.put("max_tokens", 1024);
+        corpo.put("max_tokens", 4096);
         corpo.put("system", PROMPT_SISTEMA);
         ArrayNode mensagens = corpo.putArray("messages");
         ObjectNode mensagem = mensagens.addObject();
@@ -190,8 +190,10 @@ public class AgenteFinanceiroIaService {
                     }
                 }
             }
-            if (texto.isEmpty()) {
-                throw new IllegalStateException("Resposta da API do Claude sem texto (formato inesperado).");
+            String stopReason = raiz.path("stop_reason").asText("desconhecido");
+            if (texto.isEmpty() || "max_tokens".equals(stopReason)) {
+                throw new IllegalStateException("Resposta da API do Claude incompleta (stop_reason=" + stopReason
+                        + ", " + texto.length() + " caracteres de texto). Corpo bruto (inicio): " + resumo(resposta.body()));
             }
             return texto.toString();
         } catch (IOException e) {
