@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cartec — Resumo Diário</title>
+    <style th:replace="~{fragments/estilos :: base}"></style>
+    <style>
+        .campo-numero { display: flex; flex-direction: column; gap: 4px; }
+        .grid-checkin { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 16px; }
+        .badge-lancado { font-size: 0.75rem; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--good) 15%, transparent); color: var(--good); }
+        .badge-nao-lancado { font-size: 0.75rem; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--warn) 15%, transparent); color: var(--warn); }
+    </style>
+</head>
+<body>
+<header th:replace="~{fragments/nav :: topbar}"></header>
+<div class="page-header">
+    <div>
+        <h1>Resumo Diário</h1>
+        <p>Lance os números do dia — o financeiro (faturamento, ticket médio, OS finalizadas) já vem calculado sozinho.</p>
+    </div>
+</div>
+<main>
+    <section class="card" style="margin-bottom:20px;">
+        <h2 style="margin-top:0;">Financeiro do dia
+            <span th:class="${resumo.lancado()} ? 'badge-lancado' : 'badge-nao-lancado'"
+                  th:text="${resumo.lancado()} ? 'Lançado' : 'Ainda não lançado'">Status</span>
+        </h2>
+        <p class="descricao">Calculado automaticamente a partir das Ordens de Serviço com data de faturamento
+            <span th:text="${#temporals.format(resumo.data(), 'dd/MM/yyyy')}">--/--/----</span>.</p>
+        <div class="tiles">
+            <div class="tile">
+                <div class="label">Faturamento do dia</div>
+                <div class="value" th:text="${'R$ ' + #numbers.formatDecimal(resumo.faturamentoDia(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+            </div>
+            <div class="tile">
+                <div class="label">Ticket médio do dia</div>
+                <div class="value" th:text="${'R$ ' + #numbers.formatDecimal(resumo.ticketMedioDia(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</div>
+            </div>
+            <div class="tile">
+                <div class="label">OS finalizadas no dia</div>
+                <div class="value" th:text="${resumo.osFinalizadasDia()}">0</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2 style="margin-top:0;">Check-in do dia</h2>
+        <p class="descricao">Números que só você sabe — preencha no fim do dia (ou de um dia atrasado, trocando a data abaixo).</p>
+        <form id="formCheckIn">
+            <label for="data">Data</label>
+            <input type="date" id="data" th:value="${resumo.data()}" style="margin-bottom:16px; max-width:220px;">
+
+            <div class="grid-checkin">
+                <div class="campo-numero">
+                    <label for="atendimentos">Atendimentos realizados</label>
+                    <input type="number" id="atendimentos" min="0" th:value="${resumo.atendimentosRealizados()}">
+                </div>
+                <div class="campo-numero">
+                    <label for="agendamentos">Agendamentos realizados</label>
+                    <input type="number" id="agendamentos" min="0" th:value="${resumo.agendamentosRealizados()}">
+                </div>
+                <div class="campo-numero">
+                    <label for="disparos">Disparos de mensagem</label>
+                    <input type="number" id="disparos" min="0" th:value="${resumo.disparosRealizados()}">
+                </div>
+                <div class="campo-numero">
+                    <label for="retornos">Retornos recebidos</label>
+                    <input type="number" id="retornos" min="0" th:value="${resumo.retornosRecebidos()}">
+                </div>
+            </div>
+
+            <label for="observacoes">Observações (opcional)</label>
+            <textarea id="observacoes" rows="3" style="margin-bottom:16px;" th:text="${resumo.observacoes()}"></textarea>
+
+            <button type="submit">Salvar check-in do dia</button>
+            <div id="resultadoCheckIn" class="resultado"></div>
+        </form>
+    </section>
+
+    <section class="card" style="margin-top:20px;">
+        <h2 style="margin-top:0;">Últimos dias lançados</h2>
+        <div class="tabela-scroll">
+            <table th:unless="${historico.isEmpty()}">
+                <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Faturamento</th>
+                    <th>Ticket médio</th>
+                    <th>OS finalizadas</th>
+                    <th>Atendimentos</th>
+                    <th>Agendamentos</th>
+                    <th>Disparos</th>
+                    <th>Retornos</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="h : ${historico}">
+                    <td>
+                        <a th:href="@{/resumo-diario(data=${h.data()})}" th:text="${#temporals.format(h.data(), 'dd/MM/yyyy')}">01/01/2026</a>
+                    </td>
+                    <td class="numero" th:text="${'R$ ' + #numbers.formatDecimal(h.faturamentoDia(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                    <td class="numero" th:text="${'R$ ' + #numbers.formatDecimal(h.ticketMedioDia(), 1, 'POINT', 2, 'COMMA')}">R$ 0,00</td>
+                    <td class="numero" th:text="${h.osFinalizadasDia()}">0</td>
+                    <td class="numero" th:text="${h.atendimentosRealizados()}">0</td>
+                    <td class="numero" th:text="${h.agendamentosRealizados()}">0</td>
+                    <td class="numero" th:text="${h.disparosRealizados()}">0</td>
+                    <td class="numero" th:text="${h.retornosRecebidos()}">0</td>
+                </tr>
+                </tbody>
+            </table>
+            <p class="vazio" th:if="${historico.isEmpty()}">Nenhum dia lançado ainda — preencha o check-in acima.</p>
+        </div>
+    </section>
+</main>
+
+<script th:replace="~{fragments/nav :: script-nav-ativo}"></script>
+<script>
+    document.getElementById('formCheckIn').addEventListener('submit', async (evento) => {
+        evento.preventDefault();
+        const caixa = document.getElementById('resultadoCheckIn');
+        const corpo = {
+            data: document.getElementById('data').value,
+            atendimentosRealizados: Number(document.getElementById('atendimentos').value) || 0,
+            agendamentosRealizados: Number(document.getElementById('agendamentos').value) || 0,
+            disparosRealizados: Number(document.getElementById('disparos').value) || 0,
+            retornosRecebidos: Number(document.getElementById('retornos').value) || 0,
+            observacoes: document.getElementById('observacoes').value
+        };
+
+        const resposta = await fetch('/api/resumo-diario', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(corpo)
+        });
+
+        if (resposta.ok) {
+            caixa.className = 'resultado ok';
+            caixa.textContent = 'Check-in salvo. Recarregando...';
+            setTimeout(() => window.location.href = '/resumo-diario?data=' + corpo.data, 600);
+        } else {
+            caixa.className = 'resultado erro';
+            caixa.textContent = 'Erro ao salvar (HTTP ' + resposta.status + ')';
+        }
+    });
+</script>
+</body>
+</html>
