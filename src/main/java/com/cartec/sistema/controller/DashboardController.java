@@ -1,8 +1,6 @@
 package com.cartec.sistema.controller;
 
-import com.cartec.sistema.model.Meta;
 import com.cartec.sistema.model.MetricaSemanal;
-import com.cartec.sistema.repository.MetaRepository;
 import com.cartec.sistema.repository.MetricaSemanalRepository;
 import com.cartec.sistema.service.MetricaService;
 import com.cartec.sistema.service.ProjecaoMensalService;
@@ -25,19 +23,14 @@ import java.util.List;
 @Controller
 public class DashboardController {
 
-    private static final String INDICADOR_TICKET_MEDIO = "TICKET_MEDIO";
-
     private final MetricaSemanalRepository metricaSemanalRepository;
-    private final MetaRepository metaRepository;
     private final MetricaService metricaService;
     private final ProjecaoMensalService projecaoMensalService;
 
     public DashboardController(MetricaSemanalRepository metricaSemanalRepository,
-                                MetaRepository metaRepository,
                                 MetricaService metricaService,
                                 ProjecaoMensalService projecaoMensalService) {
         this.metricaSemanalRepository = metricaSemanalRepository;
-        this.metaRepository = metaRepository;
         this.metricaService = metricaService;
         this.projecaoMensalService = projecaoMensalService;
     }
@@ -50,7 +43,6 @@ public class DashboardController {
 
         BigDecimal ticketMedioAtual = null;
         BigDecimal variacaoPercentualExibicao = null;
-        BigDecimal percentualMeta = null;
 
         if (!metricas.isEmpty()) {
             ticketMedioAtual = metricas.get(metricas.size() - 1).getTicketMedio();
@@ -60,17 +52,10 @@ public class DashboardController {
                 BigDecimal variacaoPercentual = metricaService.calcularVariacaoPercentual(ticketMedioAtual, anterior);
                 variacaoPercentualExibicao = variacaoPercentual.multiply(BigDecimal.valueOf(100L));
             }
-
-            List<Meta> metasTicketMedio = metaRepository.findByIndicador(INDICADOR_TICKET_MEDIO);
-            if (!metasTicketMedio.isEmpty()) {
-                BigDecimal valorMeta = metasTicketMedio.get(metasTicketMedio.size() - 1).getValorMeta();
-                percentualMeta = metricaService.calcularPercentualMeta(ticketMedioAtual, valorMeta);
-            }
         }
 
         model.addAttribute("ticketMedioAtual", ticketMedioAtual);
         model.addAttribute("variacaoPercentualExibicao", variacaoPercentualExibicao);
-        model.addAttribute("percentualMeta", percentualMeta);
 
         ProjecaoMensalService.Projecao projecao = projecaoMensalService.calcular(YearMonth.now());
         model.addAttribute("projecao", projecao);

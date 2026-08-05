@@ -30,12 +30,6 @@
             <div class="value dash" th:if="${variacaoPercentualExibicao == null}">sem 2 semanas ainda</div>
         </div>
         <div class="tile">
-            <div class="label">% da meta atingida</div>
-            <div class="value" th:if="${percentualMeta != null}"
-                 th:text="${#numbers.formatDecimal(percentualMeta, 1, 'POINT', 1, 'COMMA') + '%'}">0%</div>
-            <div class="value dash" th:if="${percentualMeta == null}">meta não cadastrada</div>
-        </div>
-        <div class="tile">
             <div class="label">Atendimentos no mês</div>
             <div class="value" th:text="${projecao.totalOs}">0</div>
         </div>
